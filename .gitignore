@@ -8,6 +8,13 @@ node_modules/
 
 # Build output
 dist/
+build/
+
+# Claude
+.claude/
+
+# Temp files
+nul
 
 # IDE
 .vscode/
@@ -20,3 +27,5 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+
+.vercel

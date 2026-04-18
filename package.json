@@ -3,6 +3,8 @@
       "version": "0.1.0",
       "private": true,
       "dependencies": {
+            "@emoji-mart/data": "^1.2.1",
+            "@emoji-mart/react": "^1.1.1",
             "@radix-ui/react-accordion": "^1.2.3",
             "@radix-ui/react-alert-dialog": "^1.1.6",
             "@radix-ui/react-aspect-ratio": "^1.1.2",
@@ -42,7 +44,6 @@
             "react-day-picker": "^8.10.1",
             "react-dom": "^18.3.1",
             "react-hook-form": "^7.55.0",
-            "react-pdf": "^9.1.1",
             "react-resizable-panels": "^2.1.7",
             "recharts": "^2.15.2",
             "sonner": "^2.0.3",
@@ -50,7 +51,9 @@
             "vaul": "^1.1.2"
       },
       "devDependencies": {
-            "@types/node": "^20.10.0",
+            "@types/node": "^20.19.30",
+            "@types/react": "^18.3.27",
+            "@types/react-dom": "^18.3.7",
             "@vitejs/plugin-react-swc": "^3.10.2",
             "vite": "6.3.5"
       },

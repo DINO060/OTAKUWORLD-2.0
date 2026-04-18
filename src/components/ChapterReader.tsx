@@ -1,10 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, BookOpen, ChevronDown, ChevronUp, File, Download, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, MoreVertical, Eye } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { ArrowLeft, BookOpen, ChevronDown, ChevronUp, File, Download, MoreVertical, Eye, Maximize, Minimize, PlusCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Document, Page, pdfjs } from 'react-pdf@9.1.1';
-
-// Configure PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+import { useAuth } from '../contexts/AuthContext';
 
 interface ChapterReaderProps {
   chapterId: string;
@@ -12,6 +9,7 @@ interface ChapterReaderProps {
   onChapterList: () => void;
   chapters: any[];
   onSelectChapter?: (chapterId: string) => void;
+  onAddChapter?: (workTitle: string) => void;
 }
 
 interface ChapterContent {
@@ -22,13 +20,15 @@ interface ChapterContent {
   authorId: string;
   tags: string[];
   description: string;
-  contentType: 'text' | 'images' | 'file';
+  contentType: 'text' | 'images' | 'file' | 'pdf' | 'cbz';
   textContent?: string;
   imagePages?: string[];
   coverImage?: string;
+  fileUrl?: string;
   fileData?: string;
   fileName?: string;
   fileType?: string;
+  telegramFileId?: string;
 }
 
 // Default chapter content (fallback)
@@ -88,7 +88,8 @@ The awakening had begun.
 [End of Chapter 1]`,
 };
 
-export default function ChapterReader({ chapterId, onBack, onChapterList, chapters, onSelectChapter }: ChapterReaderProps) {
+export default function ChapterReader({ chapterId, onBack, onChapterList, chapters, onSelectChapter, onAddChapter }: ChapterReaderProps) {
+  const { user } = useAuth();
   const currentIndex = chapters.findIndex(ch => ch.id === chapterId);
   const foundChapter = chapters[currentIndex];
   
@@ -104,49 +105,62 @@ export default function ChapterReader({ chapterId, onBack, onChapterList, chapte
     textContent: foundChapter.textContent,
     imagePages: foundChapter.images,
     coverImage: foundChapter.coverImage,
+    fileUrl: foundChapter.fileUrl,
     fileData: foundChapter.fileData,
     fileName: foundChapter.fileName,
     fileType: foundChapter.fileType,
+    telegramFileId: foundChapter.telegramFileId,
   } : mockChapterContent;
+
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  const resolvedFileUrl = chapter.fileUrl || chapter.fileData ||
+    (chapter.telegramFileId ? `${apiBase}/download/${chapter.id}` : undefined);
 
   const [showSynopsis, setShowSynopsis] = useState(true);
   const [showChaptersList, setShowChaptersList] = useState(false);
-  
-  // PDF Reader states
-  const [numPages, setNumPages] = useState<number | null>(null);
-  const [pageNumber, setPageNumber] = useState(1);
-  const [scale, setScale] = useState(1.0);
+  const [isReading, setIsReading] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const readerRef = useRef<HTMLDivElement>(null);
 
-  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
-    setNumPages(numPages);
-    setPageNumber(1);
-  };
+  const isPdf = chapter.contentType === 'pdf' ||
+    chapter.fileType === 'pdf' ||
+    (chapter.contentType === 'file' && (chapter.fileUrl?.endsWith('.pdf') || chapter.fileName?.endsWith('.pdf')));
 
-  const goToPrevPage = () => {
-    setPageNumber(prev => Math.max(1, prev - 1));
-  };
+  // Author check for "Add Next Chapter" button
+  const isAuthor = user && chapter.authorId === user.id;
+  const sameWorkChapters = useMemo(() =>
+    chapters.filter(ch => ch.title === chapter.title && ch.author === chapter.author),
+    [chapters, chapter.title, chapter.author]
+  );
+  const maxChapterNumber = useMemo(() =>
+    Math.max(...sameWorkChapters.map((ch: any) => ch.chapterNumber), 0),
+    [sameWorkChapters]
+  );
 
-  const goToNextPage = () => {
-    setPageNumber(prev => Math.min(numPages || 1, prev + 1));
-  };
+  const toggleFullscreen = useCallback(() => {
+    if (!readerRef.current) return;
+    if (!document.fullscreenElement) {
+      readerRef.current.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+    } else {
+      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
+    }
+  }, []);
 
-  const zoomIn = () => {
-    setScale(prev => Math.min(2.0, prev + 0.2));
-  };
+  // Listen for fullscreen changes (e.g., user presses Escape)
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handler);
+    return () => document.removeEventListener('fullscreenchange', handler);
+  }, []);
 
-  const zoomOut = () => {
-    setScale(prev => Math.max(0.5, prev - 0.2));
-  };
-
-  // Scroll to top when chapter changes
+  // Scroll to top and reset reading state when chapter changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    setPageNumber(1);
-    setScale(1.0);
+    setIsReading(false);
   }, [chapterId]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="h-full bg-gray-900 overflow-y-auto">
       {/* Header with Cover */}
       <div className="relative h-64 sm:h-80 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-500 overflow-hidden">
         {/* Cover Image Background */}
@@ -209,18 +223,18 @@ export default function ChapterReader({ chapterId, onBack, onChapterList, chapte
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-2xl shadow-sm p-5 mb-6"
+            className="bg-gray-800 rounded-2xl shadow-sm p-5 mb-6 border border-gray-700"
           >
             <div className="flex items-start justify-between gap-3 mb-3">
-              <h2 className="text-lg font-bold text-gray-900">Story Synopsis</h2>
+              <h2 className="text-lg font-bold text-white">Story Synopsis</h2>
               <button
                 onClick={() => setShowSynopsis(!showSynopsis)}
-                className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-1 hover:bg-gray-700 rounded-lg transition-colors"
               >
                 {showSynopsis ? (
-                  <ChevronUp className="w-5 h-5 text-gray-600" />
+                  <ChevronUp className="w-5 h-5 text-gray-400" />
                 ) : (
-                  <ChevronDown className="w-5 h-5 text-gray-600" />
+                  <ChevronDown className="w-5 h-5 text-gray-400" />
                 )}
               </button>
             </div>
@@ -230,7 +244,7 @@ export default function ChapterReader({ chapterId, onBack, onChapterList, chapte
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  className="text-gray-700 text-sm leading-relaxed"
+                  className="text-gray-300 text-sm leading-relaxed"
                 >
                   {chapter.description}
                 </motion.p>
@@ -239,17 +253,30 @@ export default function ChapterReader({ chapterId, onBack, onChapterList, chapte
           </motion.div>
         )}
 
+        {/* Add Next Chapter Button (author only) */}
+        {isAuthor && onAddChapter && (
+          <motion.button
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            onClick={() => onAddChapter(chapter.title)}
+            className="w-full mb-6 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-2xl font-semibold text-sm shadow-md transition-all flex items-center justify-center gap-2"
+          >
+            <PlusCircle className="w-5 h-5" />
+            Add Next Chapter (Ch. {maxChapterNumber + 1})
+          </motion.button>
+        )}
+
         {/* All Chapters Section */}
-        <div className="bg-white rounded-2xl shadow-sm mb-6 overflow-hidden">
+        <div className="bg-gray-800 rounded-2xl shadow-sm mb-6 overflow-hidden border border-gray-700">
           <button
             onClick={() => setShowChaptersList(!showChaptersList)}
-            className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            className="w-full px-5 py-4 flex items-center justify-between hover:bg-gray-700 transition-colors"
           >
-            <h2 className="text-lg font-bold text-gray-900">Chapters</h2>
+            <h2 className="text-lg font-bold text-white">Chapters</h2>
             {showChaptersList ? (
-              <ChevronUp className="w-5 h-5 text-gray-600" />
+              <ChevronUp className="w-5 h-5 text-gray-400" />
             ) : (
-              <ChevronDown className="w-5 h-5 text-gray-600" />
+              <ChevronDown className="w-5 h-5 text-gray-400" />
             )}
           </button>
           
@@ -263,23 +290,21 @@ export default function ChapterReader({ chapterId, onBack, onChapterList, chapte
               >
                 <div className="max-h-96 overflow-y-auto">
                   {chapters
-                    .filter((ch) => ch.author === chapter.author)
+                    .filter((ch) => ch.title === chapter.title && ch.author === chapter.author)
                     .sort((a, b) => a.chapterNumber - b.chapterNumber)
                     .map((ch, index) => {
                       const isCurrentChapter = ch.id === chapterId;
                       const isRead = index < currentIndex;
                       const isNew = index > currentIndex + 1;
                       
-                      // Mock data for demonstration
-                      const pageCount = ch.contentType === 'text' 
-                        ? Math.floor(Math.random() * 20) + 8
-                        : ch.contentType === 'images' && ch.images
+                      const pageCount = ch.contentType === 'images' && ch.images
                         ? ch.images.length
-                        : Math.floor(Math.random() * 30) + 10;
-                      const viewCount = Math.floor(Math.random() * 5000) + 500;
-                      const viewCountFormatted = viewCount > 1000 
-                        ? `${(viewCount / 1000).toFixed(1)}k` 
-                        : viewCount.toString();
+                        : ch.contentType === 'text' && ch.textContent
+                        ? Math.ceil(ch.textContent.length / 2000)
+                        : 1;
+                      const viewCountFormatted = ch.views > 1000
+                        ? `${(ch.views / 1000).toFixed(1)}k`
+                        : (ch.views || 0).toString();
                       
                       return (
                         <motion.div
@@ -292,11 +317,19 @@ export default function ChapterReader({ chapterId, onBack, onChapterList, chapte
                           <button
                             onClick={() => {
                               setShowChaptersList(false);
-                              if (onSelectChapter) {
+                              if (isCurrentChapter) {
+                                setIsReading(true);
+                              } else if (onSelectChapter) {
                                 onSelectChapter(ch.id);
                               }
                             }}
-                            className={`\n                              group w-full text-left px-4 sm:px-5 py-4 transition-all duration-200\n                              hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/50\n                              hover:shadow-sm active:scale-[0.98]\n                              focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-inset\n                              ${isCurrentChapter ? 'bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-l-purple-500' : ''}\n                            `}
+                            className={`
+                              group w-full text-left px-4 sm:px-5 py-4 transition-all duration-200
+                              hover:bg-gradient-to-r hover:from-blue-900/30 hover:to-purple-900/30
+                              hover:shadow-sm active:scale-[0.98]
+                              focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-inset
+                              ${isCurrentChapter ? 'bg-gradient-to-r from-purple-900/40 to-blue-900/40 border-l-4 border-l-purple-500' : ''}
+                            `}
                           >
                             <div className="flex items-center justify-between gap-3">
                               {/* Left Side - Chapter Info */}
@@ -314,12 +347,12 @@ export default function ChapterReader({ chapterId, onBack, onChapterList, chapte
                                 </div>
                                 
                                 {/* Title */}
-                                <h3 className="font-bold text-sm sm:text-base text-gray-900 mb-1 line-clamp-1 group-hover:text-purple-600 transition-colors">
+                                <h3 className="font-bold text-sm sm:text-base text-white mb-1 line-clamp-1 group-hover:text-purple-400 transition-colors">
                                   {ch.title}
                                 </h3>
                                 
                                 {/* Meta Info */}
-                                <div className="flex items-center gap-3 text-xs text-gray-500">
+                                <div className="flex items-center gap-3 text-xs text-gray-400">
                                   <span className="flex items-center gap-1">
                                     <File className="w-3.5 h-3.5" />
                                     {pageCount} pages
@@ -333,7 +366,7 @@ export default function ChapterReader({ chapterId, onBack, onChapterList, chapte
                                 {/* Optional Progress Bar */}
                                 {isCurrentChapter && (
                                   <div className="mt-2">
-                                    <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                    <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
                                       <motion.div
                                         initial={{ width: 0 }}
                                         animate={{ width: '45%' }}
@@ -358,7 +391,7 @@ export default function ChapterReader({ chapterId, onBack, onChapterList, chapte
                                       Continue
                                     </div>
                                   ) : isRead ? (
-                                    <div className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-bold rounded-lg transition-colors">
+                                    <div className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 text-sm font-bold rounded-lg transition-colors">
                                       Reread
                                     </div>
                                   ) : (
@@ -383,9 +416,9 @@ export default function ChapterReader({ chapterId, onBack, onChapterList, chapte
                                       // Add menu functionality here
                                     }
                                   }}
-                                  className="p-2 hover:bg-gray-200 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 cursor-pointer"
+                                  className="p-2 hover:bg-gray-700 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 cursor-pointer"
                                 >
-                                  <MoreVertical className="w-4 h-4 text-gray-600" />
+                                  <MoreVertical className="w-4 h-4 text-gray-400" />
                                 </div>
                               </div>
                             </div>
@@ -399,26 +432,26 @@ export default function ChapterReader({ chapterId, onBack, onChapterList, chapte
           </AnimatePresence>
         </div>
 
-        {/* Reading Area - Main Content */}
-        {chapter.contentType === 'text' && chapter.textContent && (
+        {/* Reading Area - Only shown after clicking a chapter */}
+        {isReading && chapter.contentType === 'text' && chapter.textContent && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-2xl shadow-sm p-6 mb-6"
+            className="bg-gray-800 rounded-2xl shadow-sm p-6 mb-6 border border-gray-700"
           >
             <div className="prose prose-sm max-w-none">
-              <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">
+              <div className="whitespace-pre-wrap text-gray-200 leading-relaxed">
                 {chapter.textContent}
               </div>
             </div>
           </motion.div>
         )}
 
-        {chapter.contentType === 'images' && chapter.imagePages && chapter.imagePages.length > 0 && (
+        {isReading && chapter.contentType === 'images' && chapter.imagePages && chapter.imagePages.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-2xl shadow-sm p-4 mb-6"
+            className="bg-gray-800 rounded-2xl shadow-sm p-4 mb-6 border border-gray-700"
           >
             <div className="space-y-4">
               {chapter.imagePages.map((image, index) => (
@@ -437,131 +470,70 @@ export default function ChapterReader({ chapterId, onBack, onChapterList, chapte
           </motion.div>
         )}
 
-        {chapter.contentType === 'file' && chapter.fileData && (
+        {/* PDF Reader - Native browser viewer */}
+        {isReading && isPdf && resolvedFileUrl && (
+          <motion.div
+            ref={readerRef}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`bg-gray-800 shadow-sm overflow-hidden mb-6 border border-gray-700 ${
+              isFullscreen ? 'rounded-none' : 'rounded-2xl'
+            }`}
+          >
+            <div className="bg-gray-900 border-b border-gray-700 px-4 py-3 flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-200">
+                {chapter.title} — Ch. {chapter.chapterNumber}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={toggleFullscreen}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-xs font-medium transition-all"
+                >
+                  {isFullscreen ? (
+                    <><Minimize className="w-3.5 h-3.5" /> Exit Fullscreen</>
+                  ) : (
+                    <><Maximize className="w-3.5 h-3.5" /> Fullscreen</>
+                  )}
+                </button>
+              </div>
+            </div>
+            <iframe
+              src={`${resolvedFileUrl}#toolbar=0&navpanes=0`}
+              title={`${chapter.title} - Chapter ${chapter.chapterNumber}`}
+              className="w-full border-0"
+              style={{ height: isFullscreen ? 'calc(100vh - 48px)' : '85vh', minHeight: '700px' }}
+            />
+          </motion.div>
+        )}
+
+        {/* CBZ / Other files - Download option */}
+        {isReading && (chapter.contentType === 'cbz' || (chapter.contentType === 'file' && !chapter.fileName?.endsWith('.pdf'))) && resolvedFileUrl && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-2xl shadow-sm overflow-hidden mb-6"
+            className="bg-gray-800 rounded-2xl shadow-sm overflow-hidden mb-6 border border-gray-700"
           >
-            {/* PDF Viewer */}
-            {chapter.fileName?.toLowerCase().endsWith('.pdf') ? (
-              <div className="flex flex-col">
-                {/* PDF Controls */}
-                <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={goToPrevPage}
-                      disabled={pageNumber <= 1}
-                      className={`p-2 rounded-lg transition-colors ${
-                        pageNumber <= 1
-                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                          : 'bg-blue-500 hover:bg-blue-600 text-white'
-                      }`}
-                    >
-                      <ChevronLeft className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={goToNextPage}
-                      disabled={pageNumber >= (numPages || 1)}
-                      className={`p-2 rounded-lg transition-colors ${
-                        pageNumber >= (numPages || 1)
-                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                          : 'bg-blue-500 hover:bg-blue-600 text-white'
-                      }`}
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
-                    <span className="text-sm font-medium text-gray-700 ml-2">
-                      Page {pageNumber} of {numPages || '...'}
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={zoomOut}
-                      className="p-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors"
-                    >
-                      <ZoomOut className="w-5 h-5 text-gray-700" />
-                    </button>
-                    <span className="text-sm font-medium text-gray-700 min-w-[60px] text-center">
-                      {Math.round(scale * 100)}%
-                    </span>
-                    <button
-                      onClick={zoomIn}
-                      className="p-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors"
-                    >
-                      <ZoomIn className="w-5 h-5 text-gray-700" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* PDF Document */}
-                <div className="p-4 bg-gray-100 flex justify-center overflow-auto max-h-[800px]">
-                  <Document
-                    file={chapter.fileData}
-                    onLoadSuccess={onDocumentLoadSuccess}
-                    loading={
-                      <div className="flex items-center justify-center py-20">
-                        <div className="text-center">
-                          <div className="w-16 h-16 mx-auto mb-4 bg-blue-100 rounded-full flex items-center justify-center animate-pulse">
-                            <File className="w-8 h-8 text-blue-500" />
-                          </div>
-                          <p className="text-gray-600 text-sm">Loading PDF...</p>
-                        </div>
-                      </div>
-                    }
-                    error={
-                      <div className="flex items-center justify-center py-20">
-                        <div className="text-center">
-                          <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
-                            <File className="w-8 h-8 text-red-500" />
-                          </div>
-                          <p className="text-red-600 text-sm font-semibold mb-2">Failed to load PDF</p>
-                          <a
-                            href={chapter.fileData}
-                            download={chapter.fileName}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm transition-all"
-                          >
-                            <Download className="w-4 h-4" />
-                            Download Instead
-                          </a>
-                        </div>
-                      </div>
-                    }
-                  >
-                    <Page
-                      pageNumber={pageNumber}
-                      scale={scale}
-                      renderTextLayer={false}
-                      renderAnnotationLayer={false}
-                      className="shadow-lg"
-                    />
-                  </Document>
-                </div>
+            <div className="text-center py-8 px-4">
+              <div className="w-16 h-16 mx-auto mb-4 bg-blue-900 rounded-full flex items-center justify-center">
+                <File className="w-8 h-8 text-blue-400" />
               </div>
-            ) : (
-              /* Non-PDF files - Download option */
-              <div className="text-center py-8 px-4">
-                <div className="w-16 h-16 mx-auto mb-4 bg-blue-100 rounded-full flex items-center justify-center">
-                  <File className="w-8 h-8 text-blue-500" />
-                </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">File Chapter</h3>
-                <p className="text-gray-600 text-sm mb-6">
-                  {chapter.fileName || 'Uploaded file'}
-                </p>
-                <a
-                  href={chapter.fileData}
-                  download={chapter.fileName || 'chapter'}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold text-sm transition-all"
-                >
-                  <Download className="w-5 h-5" />
-                  Download File
-                </a>
-                <p className="text-xs text-gray-500 mt-4">
-                  This file type cannot be previewed. Download to read.
-                </p>
-              </div>
-            )}
+              <h3 className="text-lg font-bold text-white mb-2">
+                {chapter.contentType === 'cbz' ? 'CBZ Chapter' : 'File Chapter'}
+              </h3>
+              <p className="text-gray-400 text-sm mb-6">
+                {chapter.fileName || `${chapter.title}.${chapter.fileType || 'file'}`}
+              </p>
+              <a
+                href={resolvedFileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                download={chapter.fileName || `${chapter.title}.${chapter.fileType || 'file'}`}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold text-sm transition-all"
+              >
+                <Download className="w-5 h-5" />
+                Download File
+              </a>
+            </div>
           </motion.div>
         )}
 
@@ -569,7 +541,7 @@ export default function ChapterReader({ chapterId, onBack, onChapterList, chapte
         <div className="text-center pb-6">
           <button
             onClick={onBack}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold text-sm transition-all"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-xl font-semibold text-sm transition-all"
           >
             <BookOpen className="w-5 h-5" />
             Back to Browse

@@ -1,7 +1,10 @@
-import React, { ReactNode } from 'react';
+import { ReactNode } from 'react';
 import { AuthProvider } from './AuthContext';
 import { ChatProvider } from './ChatContext';
 import { ChaptersProvider } from './ChaptersContext';
+import { PrivateMessagesProvider } from './PrivateMessagesContext';
+import { PresenceProvider } from './PresenceContext';
+import { NotificationsProvider } from './NotificationsContext';
 
 // ============================================
 // APP PROVIDERS - Combined Provider Wrapper
@@ -14,11 +17,17 @@ interface AppProvidersProps {
 export function AppProviders({ children }: AppProvidersProps) {
   return (
     <AuthProvider>
-      <ChatProvider>
-        <ChaptersProvider>
-          {children}
-        </ChaptersProvider>
-      </ChatProvider>
+      <PresenceProvider>
+        <NotificationsProvider>
+          <ChatProvider>
+            <ChaptersProvider>
+              <PrivateMessagesProvider>
+                {children}
+              </PrivateMessagesProvider>
+            </ChaptersProvider>
+          </ChatProvider>
+        </NotificationsProvider>
+      </PresenceProvider>
     </AuthProvider>
   );
 }

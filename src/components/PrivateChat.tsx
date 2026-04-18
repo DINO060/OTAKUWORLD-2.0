@@ -1,273 +1,456 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Menu, Smile, Hash, Send, MoreVertical } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { useState, useEffect, useRef } from 'react';
+import { ArrowLeft, Smile, Send, Loader2, Check, CheckCheck, Sparkles, Pencil, Trash2, MoreVertical, X } from 'lucide-react';
+import { motion } from 'motion/react';
+import { usePrivateMessages } from '../contexts/PrivateMessagesContext';
+import { useAuth } from '../contexts/AuthContext';
+import { usePresence } from '../contexts/PresenceContext';
+import EmojiPicker from './EmojiPicker';
+import GifPickerModal from './GifPickerModal';
+import StickerPicker from './StickerPicker';
+import { getStickerById } from '../data/stickers';
+import type { GifPayload } from '../types';
 
-// Mock Data Types
-interface PrivateMessage {
-  id: string;
-  senderId: string;
-  text: string;
-  timestamp: string;
-  isOutgoing: boolean;
+// Detect message kind from raw content string
+function detectKind(content: string): 'gif' | 'sticker' | 'text' {
+  if (content.startsWith('::sticker::')) return 'sticker';
+  if (content.startsWith('{')) {
+    try {
+      const p = JSON.parse(content);
+      if (p && (p.gif || p.mp4)) return 'gif';
+    } catch { /* not JSON */ }
+  }
+  return 'text';
 }
-
-interface ChatUser {
-  id: string;
-  username: string;
-  avatarColor: string;
-  isActive: boolean;
-  lastSeen?: string;
-}
-
-// Mock chat partner
-const mockChatPartner: ChatUser = {
-  id: '2',
-  username: 'sakura_dev',
-  avatarColor: '#ec4899',
-  isActive: true,
-};
-
-// Mock conversation
-const initialMessages: PrivateMessage[] = [
-  {
-    id: '1',
-    senderId: '2',
-    text: 'Hey! How are you? 😊',
-    timestamp: '14:32',
-    isOutgoing: false,
-  },
-  {
-    id: '2',
-    senderId: '1',
-    text: 'Hi! I\'m doing great, thanks! Just working on some new features',
-    timestamp: '14:33',
-    isOutgoing: true,
-  },
-  {
-    id: '3',
-    senderId: '2',
-    text: 'That sounds exciting! What are you building?',
-    timestamp: '14:34',
-    isOutgoing: false,
-  },
-  {
-    id: '4',
-    senderId: '1',
-    text: 'A private chat feature 🚀',
-    timestamp: '14:35',
-    isOutgoing: true,
-  },
-  {
-    id: '5',
-    senderId: '2',
-    text: 'Oh nice! Can\'t wait to try it out 🎉',
-    timestamp: '14:36',
-    isOutgoing: false,
-  },
-];
 
 interface PrivateChatProps {
   onBack?: () => void;
-  isLoggedIn?: boolean;
   selectedUserId?: string;
 }
 
-export default function PrivateChat({ onBack, isLoggedIn = true, selectedUserId = '2' }: PrivateChatProps) {
-  const [messages, setMessages] = useState<PrivateMessage[]>(initialMessages);
+export default function PrivateChat({ onBack, selectedUserId }: PrivateChatProps) {
+  const { user } = useAuth();
+  const { isOnline } = usePresence();
+  const {
+    messages,
+    isLoadingMessages,
+    currentParticipant,
+    sendMessage,
+    editMessage,
+    deleteMessage,
+    openConversation,
+    closeConversation,
+  } = usePrivateMessages();
+
   const [inputText, setInputText] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
+  const [isGifPickerOpen, setIsGifPickerOpen] = useState(false);
+  const [isStickerPickerOpen, setIsStickerPickerOpen] = useState(false);
+  const [messageMenuOpen, setMessageMenuOpen] = useState<string | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editText, setEditText] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Get chat partner based on selectedUserId
-  const chatPartner: ChatUser = {
-    id: selectedUserId,
-    username: selectedUserId === '2' ? 'sakura_dev' : selectedUserId === '3' ? 'TechGuru' : 'MangaFan22',
-    avatarColor: selectedUserId === '2' ? '#ec4899' : selectedUserId === '3' ? '#10b981' : '#f59e0b',
-    isActive: selectedUserId === '2',
+  const isLoggedIn = !!user;
+
+  useEffect(() => {
+    if (selectedUserId) openConversation(selectedUserId);
+    return () => { closeConversation(); };
+  }, [selectedUserId, openConversation, closeConversation]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const getInitials = (username: string) => username.slice(0, 2).toUpperCase();
+
+  const closeAllPickers = () => {
+    setIsEmojiPickerOpen(false);
+    setIsGifPickerOpen(false);
+    setIsStickerPickerOpen(false);
   };
 
-  const getInitials = (username: string) => {
-    return username.slice(0, 2).toUpperCase();
-  };
+  // ── Send handlers ───────────────────────────────────────────────────
+  const [sendError, setSendError] = useState('');
 
-  const getCurrentTime = () => {
-    const now = new Date();
-    return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-  };
-
-  const handleSendMessage = () => {
-    if (!isLoggedIn || inputText.trim() === '') return;
-
-    const newMessage: PrivateMessage = {
-      id: (messages.length + 1).toString(),
-      senderId: '1',
-      text: inputText,
-      timestamp: getCurrentTime(),
-      isOutgoing: true,
-    };
-
-    setMessages([...messages, newMessage]);
-    setInputText('');
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleSendMessage();
+  const handleSendMessage = async () => {
+    if (!isLoggedIn || inputText.trim() === '' || isSending) return;
+    setSendError('');
+    setIsSending(true);
+    const result = await sendMessage(inputText);
+    setIsSending(false);
+    if (result.error) {
+      setSendError('Échec de l\'envoi. Réessayez.');
+      setTimeout(() => setSendError(''), 3000);
+    } else {
+      setInputText('');
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      if (editingMessageId) handleSaveEdit();
+      else handleSendMessage();
+    }
+    if (e.key === 'Escape' && editingMessageId) handleCancelEdit();
+  };
+
+  const handleEmojiSelect = (emoji: string) => {
+    setInputText(prev => prev + emoji);
+    closeAllPickers();
+    inputRef.current?.focus();
+  };
+
+  const handleGifSelect = async (payload: GifPayload) => {
+    if (!isLoggedIn) return;
+    closeAllPickers();
+    await sendMessage(JSON.stringify(payload));
+  };
+
+  const handleStickerSelect = async (stickerId: string) => {
+    if (!isLoggedIn) return;
+    closeAllPickers();
+    await sendMessage(`::sticker::${stickerId}`);
+  };
+
+  const handleStartEdit = (messageId: string, content: string) => {
+    setEditingMessageId(messageId);
+    setEditText(content);
+    setMessageMenuOpen(null);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessageId(null);
+    setEditText('');
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editText.trim() || !editingMessageId) return;
+    await editMessage(editingMessageId, editText);
+    setEditingMessageId(null);
+    setEditText('');
+  };
+
+  const handleDelete = async (messageId: string) => {
+    setMessageMenuOpen(null);
+    await deleteMessage(messageId);
+  };
+
+  // ── Message content renderer ────────────────────────────────────────
+  const renderContent = (content: string) => {
+    const kind = detectKind(content);
+
+    if (kind === 'sticker') {
+      const id = content.replace('::sticker::', '');
+      const sticker = getStickerById(id);
+      return <div className="text-5xl leading-none py-1">{sticker?.emoji || id}</div>;
+    }
+
+    if (kind === 'gif') {
+      let gifData: GifPayload = { mp4: '', gif: content, title: 'GIF' };
+      try { gifData = JSON.parse(content) as GifPayload; } catch { /* use fallback */ }
+
+      if (gifData.mediaKind === 'sticker') {
+        return (
+          <img
+            src={gifData.gif}
+            alt={gifData.title}
+            className="w-28 h-28 object-contain"
+            loading="lazy"
+          />
+        );
+      }
+      return (
+        <div className="rounded-2xl overflow-hidden" style={{ maxWidth: 220 }}>
+          {gifData.mp4 ? (
+            <video src={gifData.mp4} autoPlay loop muted playsInline className="w-full rounded-2xl block" />
+          ) : (
+            <img src={gifData.gif} alt={gifData.title} className="w-full max-h-[180px] object-cover rounded-2xl" loading="lazy" />
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <p className="text-sm sm:text-base leading-relaxed break-words">{content}</p>
+    );
+  };
+
+  // ── Participant fallback ────────────────────────────────────────────
+  const chatPartner = currentParticipant || {
+    id: selectedUserId || '',
+    username: 'Loading...',
+    avatarColor: '#6b7280',
+    isOnline: false,
+  };
+
+  const online = isOnline(chatPartner.id);
+
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
-      {/* HEADER - Same gradient as Comment Live */}
-      <header className="bg-gradient-to-r from-[#2563eb] to-[#3b82f6] shadow-lg flex-shrink-0 z-40">
-        <div className="px-3 py-3 sm:px-4 sm:py-3.5 flex items-center justify-between gap-3">
-          {/* Left: Back Arrow + Avatar + User Info */}
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            {/* Back Button */}
-            <button
-              onClick={onBack}
-              className="w-9 h-9 sm:w-10 sm:h-10 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center transition-all flex-shrink-0"
-            >
-              <ArrowLeft className="w-5 h-5 text-white" strokeWidth={2.5} />
-            </button>
+    <div className="h-full flex flex-col bg-background">
 
-            {/* Avatar */}
-            <div
-              className="w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 shadow-md"
-              style={{ backgroundColor: chatPartner.avatarColor }}
-            >
-              {getInitials(chatPartner.username)}
-            </div>
+      {/* HEADER */}
+      <header className="bg-gradient-to-r from-purple-600 to-indigo-600 shadow-lg flex-shrink-0 z-40">
+        <div className="px-3 py-3 sm:px-4 sm:py-3.5 flex items-center gap-3">
+          <button
+            onClick={onBack}
+            className="w-9 h-9 sm:w-10 sm:h-10 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center transition-all flex-shrink-0"
+          >
+            <ArrowLeft className="w-5 h-5 text-white" strokeWidth={2.5} />
+          </button>
 
-            {/* Username + Status */}
-            <div className="flex-1 min-w-0">
-              <h1 className="text-white font-bold text-base sm:text-lg truncate">
-                {chatPartner.username}
-              </h1>
-              <p className="text-white/80 text-xs sm:text-sm">
-                {chatPartner.isActive ? 'Active now' : `Last seen ${chatPartner.lastSeen || '2h ago'}`}
-              </p>
-            </div>
+          <div
+            className="w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 shadow-md"
+            style={{ backgroundColor: chatPartner.avatarColor }}
+          >
+            {getInitials(chatPartner.username)}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <h1 className="text-white font-bold text-base sm:text-lg truncate">{chatPartner.username}</h1>
+            <p className="text-white/80 text-xs sm:text-sm flex items-center gap-1.5">
+              {online && <span className="w-2 h-2 bg-green-400 rounded-full inline-block" />}
+              {online ? 'En ligne' : 'Hors ligne'}
+            </p>
           </div>
         </div>
       </header>
 
-      {/* CHAT AREA - Messages */}
-      <div className="flex-1 overflow-y-auto px-3 py-4 sm:px-4 sm:py-5 space-y-4">
-        {messages.length === 0 ? (
-          // Empty State
+      {/* CHAT AREA */}
+      <div className="flex-1 overflow-y-auto px-3 py-4 sm:px-4 sm:py-5 space-y-3" onClick={() => { closeAllPickers(); setMessageMenuOpen(null); }}>
+        {isLoadingMessages ? (
+          <div className="h-full flex items-center justify-center">
+            <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
+          </div>
+        ) : messages.length === 0 ? (
           <div className="h-full flex items-center justify-center">
             <div className="text-center px-6 py-12">
-              <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-blue-100 to-blue-50 rounded-full flex items-center justify-center">
-                <Smile className="w-10 h-10 text-blue-400" strokeWidth={1.5} />
+              <div className="w-20 h-20 mx-auto mb-4 bg-purple-500/20 rounded-full flex items-center justify-center">
+                <Smile className="w-10 h-10 text-purple-400" strokeWidth={1.5} />
               </div>
-              <h3 className="text-gray-800 font-semibold text-lg mb-2">No messages yet</h3>
-              <p className="text-gray-500 text-sm">Say hi to start the conversation 👋</p>
+              <h3 className="text-foreground font-semibold text-lg mb-2">Aucun message</h3>
+              <p className="text-muted-foreground text-sm">Envoyez le premier message !</p>
             </div>
           </div>
         ) : (
-          // Messages List
-          messages.map((message) => (
-            <motion.div
-              key={message.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2 }}
-              className={`flex gap-2 ${message.isOutgoing ? 'justify-end' : 'justify-start'}`}
-            >
-              {/* Incoming Message - Left Side with Avatar */}
-              {!message.isOutgoing && (
-                <>
-                  <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0 mt-1"
-                    style={{ backgroundColor: chatPartner.avatarColor }}
-                  >
-                    {getInitials(chatPartner.username)}
-                  </div>
-                  <div className="flex flex-col max-w-[75%] sm:max-w-[60%]">
-                    <div className="bg-white rounded-2xl rounded-tl-md px-4 py-2.5 shadow-sm">
-                      <p className="text-gray-800 text-sm sm:text-base leading-relaxed break-words">
-                        {message.text}
-                      </p>
-                    </div>
-                    <span className="text-xs text-gray-400 mt-1 ml-3">{message.timestamp}</span>
-                  </div>
-                </>
-              )}
+          <>
+            {messages.map((message) => {
+              const kind = detectKind(message.content);
+              const isMedia = kind !== 'text';
 
-              {/* Outgoing Message - Right Side without Avatar */}
-              {message.isOutgoing && (
-                <div className="flex flex-col items-end max-w-[75%] sm:max-w-[60%]">
-                  <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl rounded-tr-md px-4 py-2.5 shadow-sm">
-                    <p className="text-white text-sm sm:text-base leading-relaxed break-words">
-                      {message.text}
-                    </p>
-                  </div>
-                  <span className="text-xs text-gray-400 mt-1 mr-3">{message.timestamp}</span>
-                </div>
-              )}
-            </motion.div>
-          ))
+              return (
+                <motion.div
+                  key={message.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className={`flex gap-2 ${message.isOutgoing ? 'justify-end' : 'justify-start'}`}
+                >
+                  {/* Incoming */}
+                  {!message.isOutgoing && (
+                    <>
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0 mt-1"
+                        style={{ backgroundColor: chatPartner.avatarColor }}
+                      >
+                        {getInitials(chatPartner.username)}
+                      </div>
+                      <div className="flex flex-col max-w-[75%] sm:max-w-[60%]">
+                        {isMedia ? (
+                          <div className="py-1">{renderContent(message.content)}</div>
+                        ) : (
+                          <div
+                            className="rounded-2xl rounded-tl-sm px-4 py-2.5 shadow-sm"
+                            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.08)' }}
+                          >
+                            <p className="text-foreground text-sm sm:text-base leading-relaxed break-words">
+                              {message.content}
+                            </p>
+                          </div>
+                        )}
+                        <span className="text-xs text-muted-foreground mt-1 ml-1">{message.createdAt}</span>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Outgoing */}
+                  {message.isOutgoing && (
+                    <div className="flex flex-col items-end max-w-[75%] sm:max-w-[60%]">
+                      <div className="relative group">
+                        {isMedia ? (
+                          <div className="py-1">{renderContent(message.content)}</div>
+                        ) : (
+                          <div
+                            className="rounded-2xl rounded-tr-sm px-4 py-2.5 shadow-sm"
+                            style={{ background: 'linear-gradient(135deg, #9333ea 0%, #6366f1 100%)' }}
+                          >
+                            <p className="text-white text-sm sm:text-base leading-relaxed break-words">
+                              {message.content}
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Three-dot menu button (own messages only, text only) */}
+                        {!isMedia && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setMessageMenuOpen(messageMenuOpen === message.id ? null : message.id); closeAllPickers(); }}
+                            className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 w-5 h-5 bg-white/20 hover:bg-white/35 rounded-full flex items-center justify-center transition-all"
+                          >
+                            <MoreVertical className="w-3 h-3 text-white" />
+                          </button>
+                        )}
+
+                        {/* Context menu */}
+                        {messageMenuOpen === message.id && (
+                          <div
+                            className="absolute right-0 bottom-full mb-1 z-50 rounded-xl shadow-xl overflow-hidden min-w-[130px]"
+                            style={{ background: '#1e2535', border: '1px solid rgba(255,255,255,0.08)' }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              onClick={() => handleStartEdit(message.id, message.content)}
+                              className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-foreground hover:bg-white/5 transition-colors text-left"
+                            >
+                              <Pencil className="w-4 h-4 text-blue-400" />
+                              <span>Modifier</span>
+                            </button>
+                            <button
+                              onClick={() => handleDelete(message.id)}
+                              className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors text-left"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              <span>Supprimer</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1 mt-1 mr-1">
+                        <span className="text-xs text-muted-foreground">{message.createdAt}</span>
+                        {message.readAt ? (
+                          <CheckCheck className="w-3.5 h-3.5 text-purple-400" strokeWidth={2.5} />
+                        ) : (
+                          <Check className="w-3.5 h-3.5 text-muted-foreground/50" strokeWidth={2.5} />
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              );
+            })}
+            <div ref={messagesEndRef} />
+          </>
         )}
       </div>
 
-      {/* INPUT BAR - EXACTLY like Comment Live */}
-      <div className="bg-white border-t border-gray-200 px-3 py-3 sm:px-4 sm:py-3.5 flex-shrink-0 safe-area-bottom">
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* Emoji Button */}
+      {/* Pickers */}
+      <EmojiPicker isOpen={isEmojiPickerOpen} onClose={() => setIsEmojiPickerOpen(false)} onEmojiSelect={handleEmojiSelect} />
+      <GifPickerModal isOpen={isGifPickerOpen} onClose={() => setIsGifPickerOpen(false)} onSelect={handleGifSelect} />
+      <StickerPicker isOpen={isStickerPickerOpen} onClose={() => setIsStickerPickerOpen(false)} onStickerSelect={handleStickerSelect} />
+
+      {/* Editing banner */}
+      {editingMessageId && (
+        <div className="flex-shrink-0 flex items-center justify-between px-4 py-1.5 border-t" style={{ background: 'rgba(37,99,235,0.12)', borderColor: 'rgba(59,130,246,0.3)' }}>
+          <div className="flex items-center gap-2">
+            <Pencil className="w-3 h-3 text-blue-400" />
+            <span className="text-xs text-blue-400 font-medium">Modification du message</span>
+          </div>
+          <button onClick={handleCancelEdit} className="p-0.5 hover:bg-white/10 rounded transition-colors">
+            <X className="w-3.5 h-3.5 text-blue-400" />
+          </button>
+        </div>
+      )}
+
+      {/* Error feedback */}
+      {sendError && (
+        <div className="bg-red-500/10 border-t border-red-500/20 px-4 py-1.5 text-center">
+          <span className="text-xs text-red-400">{sendError}</span>
+        </div>
+      )}
+
+      {/* INPUT BAR */}
+      <div className="bg-card border-t border-border px-3 py-3 sm:px-4 sm:py-3.5 flex-shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+
+          {/* Emoji */}
           <button
+            onClick={(e) => { e.stopPropagation(); setIsEmojiPickerOpen(o => !o); setIsGifPickerOpen(false); }}
             disabled={!isLoggedIn}
-            className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl transition-all flex-shrink-0 ${
-              isLoggedIn
-                ? 'bg-gray-100 hover:bg-gray-200'
-                : 'bg-gray-100 opacity-50 cursor-not-allowed'
+            className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all flex-shrink-0 ${
+              isLoggedIn ? (isEmojiPickerOpen ? 'bg-purple-600' : 'bg-secondary hover:bg-accent') : 'bg-secondary opacity-50 cursor-not-allowed'
             }`}
           >
-            <Smile className="w-5 h-5 text-gray-600" strokeWidth={2} />
+            <Smile className={`w-5 h-5 ${isEmojiPickerOpen ? 'text-white' : 'text-muted-foreground'}`} strokeWidth={2} />
           </button>
 
-          {/* Hashtag Button */}
+          {/* GIF */}
           <button
+            onClick={(e) => { e.stopPropagation(); setIsGifPickerOpen(o => !o); setIsEmojiPickerOpen(false); setIsStickerPickerOpen(false); }}
             disabled={!isLoggedIn}
-            className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl transition-all flex-shrink-0 ${
-              isLoggedIn
-                ? 'bg-gray-100 hover:bg-gray-200'
-                : 'bg-gray-100 opacity-50 cursor-not-allowed'
+            className={`px-2 h-9 flex items-center justify-center rounded-xl transition-all flex-shrink-0 text-xs font-bold ${
+              isLoggedIn ? (isGifPickerOpen ? 'bg-purple-600 text-white' : 'bg-secondary hover:bg-accent text-muted-foreground') : 'bg-secondary opacity-50 cursor-not-allowed text-muted-foreground'
             }`}
           >
-            <Hash className="w-5 h-5 text-gray-600" strokeWidth={2} />
+            GIF
+          </button>
+
+          {/* Sticker */}
+          <button
+            onClick={(e) => { e.stopPropagation(); setIsStickerPickerOpen(o => !o); setIsEmojiPickerOpen(false); setIsGifPickerOpen(false); }}
+            disabled={!isLoggedIn}
+            className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all flex-shrink-0 ${
+              isLoggedIn ? (isStickerPickerOpen ? 'bg-purple-600' : 'bg-secondary hover:bg-accent') : 'bg-secondary opacity-50 cursor-not-allowed'
+            }`}
+          >
+            <Sparkles className={`w-5 h-5 ${isStickerPickerOpen ? 'text-white' : 'text-muted-foreground'}`} strokeWidth={2} />
           </button>
 
           {/* Text Input */}
           <input
+            ref={inputRef}
             type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyPress={handleKeyPress}
-            onFocus={() => setIsTyping(true)}
-            onBlur={() => setIsTyping(false)}
-            disabled={!isLoggedIn}
-            placeholder={isLoggedIn ? 'Write a message…' : 'Sign in to send messages…'}
-            className={`flex-1 bg-gray-100 rounded-xl px-4 py-2.5 sm:py-3 text-sm sm:text-base text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all ${
-              !isLoggedIn ? 'cursor-not-allowed opacity-50' : ''
-            }`}
+            value={editingMessageId ? editText : inputText}
+            onChange={(e) => editingMessageId ? setEditText(e.target.value) : setInputText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onFocus={closeAllPickers}
+            disabled={!isLoggedIn || isSending}
+            placeholder={isLoggedIn ? (editingMessageId ? 'Modifier le message...' : 'Message...') : 'Connectez-vous pour envoyer...'}
+            className={`flex-1 border rounded-full px-4 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 transition-all ${
+              editingMessageId
+                ? 'bg-blue-600/10 border-blue-500/40 focus:ring-blue-500/30'
+                : 'bg-secondary border-border focus:ring-purple-500/30'
+            } ${!isLoggedIn ? 'cursor-not-allowed opacity-50' : ''}`}
           />
 
-          {/* Send Button */}
+          {/* Cancel edit button */}
+          {editingMessageId && (
+            <button
+              onClick={handleCancelEdit}
+              className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-secondary hover:bg-secondary/70 transition-all"
+            >
+              <X className="w-5 h-5 text-muted-foreground" />
+            </button>
+          )}
+
+          {/* Send / Save */}
           <button
-            onClick={handleSendMessage}
-            disabled={!isLoggedIn || inputText.trim() === ''}
-            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${
-              isLoggedIn && inputText.trim() !== ''
-                ? 'bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-md'
-                : 'bg-gray-200 cursor-not-allowed'
+            onClick={editingMessageId ? handleSaveEdit : handleSendMessage}
+            disabled={!isLoggedIn || (editingMessageId ? !editText.trim() : inputText.trim() === '') || isSending}
+            className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
+              isLoggedIn && (editingMessageId ? editText.trim() !== '' : inputText.trim() !== '') && !isSending
+                ? 'shadow-md'
+                : 'bg-secondary cursor-not-allowed'
             }`}
+            style={isLoggedIn && (editingMessageId ? editText.trim() !== '' : inputText.trim() !== '') && !isSending
+              ? { background: editingMessageId ? 'linear-gradient(135deg, #2563eb 0%, #4f46e5 100%)' : 'linear-gradient(135deg, #9333ea 0%, #6366f1 100%)' }
+              : undefined}
           >
-            <Send
-              className={`w-5 h-5 ${
-                isLoggedIn && inputText.trim() !== '' ? 'text-white' : 'text-gray-400'
-              }`}
-              strokeWidth={2.5}
-            />
+            {isSending
+              ? <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />
+              : <Send className={`w-5 h-5 ${isLoggedIn && (editingMessageId ? editText.trim() !== '' : inputText.trim() !== '') ? 'text-white' : 'text-muted-foreground'}`} strokeWidth={2.5} />
+            }
           </button>
         </div>
       </div>
