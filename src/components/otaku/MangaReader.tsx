@@ -49,8 +49,12 @@ export function MangaReader({ manga, chapter, allChapters, onBack }: MangaReader
   const resolvedUrl = currentChapter.fileUrl ||
     (currentChapter.telegramFileId ? `${apiBase}/download/${currentChapter.id}` : null);
 
-  const isCbz = currentChapter.contentType === 'cbz' || currentChapter.fileType === 'cbz';
-  const isPdf = !isCbz && (currentChapter.contentType === 'pdf' || currentChapter.contentType === 'file' || currentChapter.fileType === 'pdf');
+  const isCbz = currentChapter.contentType === 'cbz' || currentChapter.fileType === 'cbz' ||
+    (currentChapter.contentType === 'file' && currentChapter.fileType === 'cbz');
+  const isPdf = !isCbz && (
+    currentChapter.contentType === 'pdf' || currentChapter.fileType === 'pdf' ||
+    currentChapter.contentType === 'file'
+  );
   const isImages = currentChapter.contentType === 'images' && currentChapter.images && currentChapter.images.length > 0;
   const isText = currentChapter.contentType === 'text';
 

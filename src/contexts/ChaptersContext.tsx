@@ -190,6 +190,17 @@ export function ChaptersProvider({ children }: ChaptersProviderProps) {
     fetchChapters();
   }, [fetchChapters]);
 
+  // Realtime: refresh quand un nouveau chapitre est inséré
+  useEffect(() => {
+    const channel = supabase
+      .channel('chapters-changes')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chapters' }, () => {
+        fetchChapters();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchChapters]);
+
   // Get chapters by current user
   const myChapters = chapters.filter(ch => user && ch.authorId === user.id);
 
