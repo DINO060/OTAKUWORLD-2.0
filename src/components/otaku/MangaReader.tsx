@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
-import { ArrowLeft, Settings, BookOpen, ChevronLeft, ChevronRight, Flag } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { ArrowLeft, Settings, BookOpen, ChevronLeft, ChevronRight, Flag, Loader } from 'lucide-react';
+import JSZip from 'jszip';
 import type { MangaTitle } from './types';
 import type { Chapter as DBChapter } from '../../types';
 import { useChapters } from '../../contexts/ChaptersContext';
@@ -18,6 +19,9 @@ export function MangaReader({ manga, chapter, allChapters, onBack }: MangaReader
   const [showControls, setShowControls] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showReport, setShowReport] = useState(false);
+  const [cbzPages, setCbzPages] = useState<string[]>([]);
+  const [cbzLoading, setCbzLoading] = useState(false);
+  const [cbzError, setCbzError] = useState<string | null>(null);
   const { incrementViews } = useChapters();
   const { user } = useAuth();
 
@@ -41,20 +45,41 @@ export function MangaReader({ manga, chapter, allChapters, onBack }: MangaReader
     setShowControls(!isFullscreen);
   };
 
-  // Determine content type
-  const isPdf = currentChapter.contentType === 'pdf' || currentChapter.contentType === 'file' || currentChapter.contentType === 'cbz';
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  const resolvedUrl = currentChapter.fileUrl ||
+    (currentChapter.telegramFileId ? `${apiBase}/download/${currentChapter.id}` : null);
+
+  const isCbz = currentChapter.contentType === 'cbz' || currentChapter.fileType === 'cbz';
+  const isPdf = !isCbz && (currentChapter.contentType === 'pdf' || currentChapter.contentType === 'file' || currentChapter.fileType === 'pdf');
   const isImages = currentChapter.contentType === 'images' && currentChapter.images && currentChapter.images.length > 0;
   const isText = currentChapter.contentType === 'text';
 
-  // For PDF/file: use fileUrl, fallback to streaming server for bot uploads
-  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-  const pdfUrl = isPdf
-    ? (currentChapter.fileUrl ||
-        (currentChapter.telegramFileId ? `${apiBase}/download/${currentChapter.id}` : null))
-    : null;
-
-  // For images: use images array
   const pages = isImages ? currentChapter.images! : [];
+
+  // CBZ: fetch + unzip + extract images
+  useEffect(() => {
+    if (!isCbz || !resolvedUrl) return;
+    setCbzPages([]);
+    setCbzError(null);
+    setCbzLoading(true);
+
+    fetch(resolvedUrl)
+      .then(r => r.arrayBuffer())
+      .then(buf => JSZip.loadAsync(buf))
+      .then(zip => {
+        const imageFiles = Object.values(zip.files)
+          .filter(f => !f.dir && /\.(jpe?g|png|webp|gif)$/i.test(f.name))
+          .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+
+        return Promise.all(
+          imageFiles.map(f =>
+            f.async('blob').then(blob => URL.createObjectURL(blob))
+          )
+        );
+      })
+      .then(urls => { setCbzPages(urls); setCbzLoading(false); })
+      .catch(e => { setCbzError('Impossible de lire le fichier CBZ'); setCbzLoading(false); });
+  }, [currentChapter.id, isCbz, resolvedUrl]);
 
   return (
     <div className="h-full flex flex-col" style={{ background: isFullscreen ? '#000000' : '#0c0c14' }}>
@@ -106,28 +131,62 @@ export function MangaReader({ manga, chapter, allChapters, onBack }: MangaReader
       {/* Reader Content */}
       <div
         className="flex-1 overflow-hidden flex flex-col"
-        onClick={() => !isPdf && setShowControls(!showControls)}
+        onClick={() => !isPdf && !isCbz && setShowControls(!showControls)}
       >
-        {/* PDF / CBZ Reader */}
-        {isPdf && pdfUrl && (
+        {/* PDF Reader */}
+        {isPdf && resolvedUrl && (
           <iframe
-            src={pdfUrl}
+            src={resolvedUrl}
             className="w-full flex-1 border-0"
             title={`${manga.title} Ch.${currentChapter.chapterNumber}`}
             style={{ background: '#1a1a25' }}
           />
         )}
 
-        {isPdf && !pdfUrl && (
+        {isPdf && !resolvedUrl && (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
               <span style={{ fontSize: '48px' }}>📄</span>
-              <p className="mt-3" style={{ fontSize: '15px', fontWeight: 700, color: '#e8e8ed' }}>
-                Fichier non disponible
-              </p>
-              <p className="mt-1" style={{ fontSize: '13px', color: '#8888a0' }}>
-                L'URL du fichier est manquante
-              </p>
+              <p className="mt-3" style={{ fontSize: '15px', fontWeight: 700, color: '#e8e8ed' }}>Fichier non disponible</p>
+              <p className="mt-1" style={{ fontSize: '13px', color: '#8888a0' }}>L'URL du fichier est manquante</p>
+            </div>
+          </div>
+        )}
+
+        {/* CBZ Reader */}
+        {isCbz && cbzLoading && (
+          <div className="flex-1 flex items-center justify-center">
+            <Loader size={32} className="animate-spin" style={{ color: '#6c5ce7' }} />
+          </div>
+        )}
+        {isCbz && cbzError && (
+          <div className="flex-1 flex items-center justify-center">
+            <p style={{ color: '#ff6b6b', fontSize: '14px' }}>{cbzError}</p>
+          </div>
+        )}
+        {isCbz && !cbzLoading && !cbzError && cbzPages.length > 0 && (
+          <div className="flex-1 overflow-y-auto" onClick={() => setShowControls(!showControls)}>
+            <div className="max-w-3xl mx-auto">
+              {cbzPages.map((url, i) => (
+                <div key={i} className="w-full">
+                  <img src={url} alt={`Page ${i + 1}`} className="w-full h-auto" style={{ display: 'block' }} loading="lazy" />
+                </div>
+              ))}
+              <div className="text-center py-8" style={{ background: '#0c0c14' }}>
+                <p style={{ fontSize: '15px', fontWeight: 700, color: '#e8e8ed', marginBottom: '8px' }}>
+                  Fin du chapitre {currentChapter.chapterNumber}
+                </p>
+                <p style={{ fontSize: '13px', color: '#8888a0' }}>{cbzPages.length} pages</p>
+                {nextChapter && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); goToChapter(nextChapter); }}
+                    className="mt-4 px-6 py-2.5 rounded-xl"
+                    style={{ background: '#6c5ce7', fontSize: '13px', fontWeight: 700, color: '#ffffff' }}
+                  >
+                    Chapitre suivant →
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}
