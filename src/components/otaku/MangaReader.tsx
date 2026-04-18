@@ -163,9 +163,17 @@ export function MangaReader({ manga, chapter, allChapters, onBack }: MangaReader
             <Loader size={32} className="animate-spin" style={{ color: '#6c5ce7' }} />
           </div>
         )}
-        {isCbz && cbzError && (
+        {isCbz && !cbzLoading && (cbzError || (!cbzError && cbzPages.length === 0)) && (
           <div className="flex-1 flex items-center justify-center">
-            <p style={{ color: '#ff6b6b', fontSize: '14px' }}>{cbzError}</p>
+            <div className="text-center">
+              <span style={{ fontSize: '48px' }}>📦</span>
+              <p className="mt-3" style={{ fontSize: '15px', fontWeight: 700, color: '#e8e8ed' }}>
+                {cbzError || 'Chargement du fichier impossible'}
+              </p>
+              <p className="mt-1" style={{ fontSize: '13px', color: '#8888a0' }}>
+                Vérifiez que le serveur streaming est actif
+              </p>
+            </div>
           </div>
         )}
         {isCbz && !cbzLoading && !cbzError && cbzPages.length > 0 && (
@@ -264,7 +272,7 @@ export function MangaReader({ manga, chapter, allChapters, onBack }: MangaReader
         )}
 
         {/* Fallback if no content */}
-        {!isPdf && !isImages && !isText && (
+        {!isPdf && !isImages && !isText && !isCbz && (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
               <span style={{ fontSize: '48px' }}>📭</span>
