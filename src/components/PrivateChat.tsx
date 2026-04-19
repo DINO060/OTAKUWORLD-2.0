@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { ArrowLeft, Smile, Send, Loader2, Check, CheckCheck, Sparkles, Pencil, Trash2, MoreVertical, X } from 'lucide-react';
 import { motion } from 'motion/react';
 import { usePrivateMessages } from '../contexts/PrivateMessagesContext';
 import { useAuth } from '../contexts/AuthContext';
 import { usePresence } from '../contexts/PresenceContext';
-import EmojiPicker from './EmojiPicker';
-import GifPickerModal from './GifPickerModal';
+const EmojiPicker = lazy(() => import('./EmojiPicker'));
+const GifPickerModal = lazy(() => import('./GifPickerModal'));
 import StickerPicker from './StickerPicker';
 import { getStickerById } from '../data/stickers';
 import type { GifPayload } from '../types';
@@ -346,8 +346,10 @@ export default function PrivateChat({ onBack, selectedUserId }: PrivateChatProps
       </div>
 
       {/* Pickers */}
-      <EmojiPicker isOpen={isEmojiPickerOpen} onClose={() => setIsEmojiPickerOpen(false)} onEmojiSelect={handleEmojiSelect} />
-      <GifPickerModal isOpen={isGifPickerOpen} onClose={() => setIsGifPickerOpen(false)} onSelect={handleGifSelect} />
+      <Suspense fallback={null}>
+        <EmojiPicker isOpen={isEmojiPickerOpen} onClose={() => setIsEmojiPickerOpen(false)} onEmojiSelect={handleEmojiSelect} />
+        <GifPickerModal isOpen={isGifPickerOpen} onClose={() => setIsGifPickerOpen(false)} onSelect={handleGifSelect} />
+      </Suspense>
       <StickerPicker isOpen={isStickerPickerOpen} onClose={() => setIsStickerPickerOpen(false)} onStickerSelect={handleStickerSelect} />
 
       {/* Editing banner */}

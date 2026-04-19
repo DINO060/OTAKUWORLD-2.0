@@ -1,9 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, Suspense, lazy } from 'react';
 import { MessageCircle, Menu, Smile, Hash, Send, User, X, Search, Trash2, Heart, MoreVertical, Pencil, AtSign, CornerUpLeft, Flag } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ProfileCard from './ProfileCard';
-import EmojiPicker from './EmojiPicker';
-import GifPickerModal from './GifPickerModal';
+const EmojiPicker = lazy(() => import('./EmojiPicker'));
+const GifPickerModal = lazy(() => import('./GifPickerModal'));
 import { getStickerById } from '../data/stickers';
 import ReportModal from './ReportModal';
 import AuthModal from './AuthModal';
@@ -1109,18 +1109,22 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
       />
 
       {/* Emoji Picker */}
-      <EmojiPicker
-        isOpen={isEmojiPickerOpen}
-        onClose={() => setIsEmojiPickerOpen(false)}
-        onEmojiSelect={handleEmojiSelect}
-      />
+      <Suspense fallback={null}>
+        <EmojiPicker
+          isOpen={isEmojiPickerOpen}
+          onClose={() => setIsEmojiPickerOpen(false)}
+          onEmojiSelect={handleEmojiSelect}
+        />
+      </Suspense>
 
       {/* GIF Picker Modal */}
-      <GifPickerModal
-        isOpen={isGifPickerOpen}
-        onClose={() => setIsGifPickerOpen(false)}
-        onSelect={handleGifSelect}
-      />
+      <Suspense fallback={null}>
+        <GifPickerModal
+          isOpen={isGifPickerOpen}
+          onClose={() => setIsGifPickerOpen(false)}
+          onSelect={handleGifSelect}
+        />
+      </Suspense>
 
       {/* Mention Suggestions */}
       <AnimatePresence>

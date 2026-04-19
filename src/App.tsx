@@ -1,21 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { MessageCircle, MessageSquare, Settings as SettingsIcon, X, Bell, AtSign, Zap, ShieldAlert, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNotifications } from './contexts/NotificationsContext';
 import PrivateChat from './components/PrivateChat';
 import Inbox from './components/Inbox';
-import ChaptersHome from './components/ChaptersHome';
-import ChapterReader from './components/ChapterReader';
-import PublishChapter from './components/PublishChapter';
-import MyChapters from './components/MyChapters';
-import ChaptersBrowsePanel from './components/ChaptersBrowsePanel';
 import AuthModal from './components/AuthModal';
-import Settings from './components/Settings';
-import AdminPanel from './components/AdminPanel';
-import OtakuWorld from './components/Otaku';
-import LoupGarou from './components/LoupGarou';
 import GlobalChatPage from './components/GlobalChatPage';
 import SplashScreen from './components/SplashScreen';
+
+// Lazy-loaded routes (not needed at startup → smaller initial bundle)
+const ChaptersHome       = lazy(() => import('./components/ChaptersHome'));
+const ChapterReader      = lazy(() => import('./components/ChapterReader'));
+const PublishChapter     = lazy(() => import('./components/PublishChapter'));
+const MyChapters         = lazy(() => import('./components/MyChapters'));
+const ChaptersBrowsePanel = lazy(() => import('./components/ChaptersBrowsePanel'));
+const Settings           = lazy(() => import('./components/Settings'));
+const AdminPanel         = lazy(() => import('./components/AdminPanel'));
+const OtakuWorld         = lazy(() => import('./components/Otaku'));
+const LoupGarou          = lazy(() => import('./components/LoupGarou'));
+
+const PageSpinner = () => (
+  <div className="flex-1 h-full flex items-center justify-center" style={{ background: '#0c0c14' }}>
+    <div className="w-8 h-8 border-2 border-[#6c5ce7] border-t-transparent rounded-full animate-spin" />
+  </div>
+);
 import { useChat } from './contexts/ChatContext';
 import { useAuth } from './contexts/AuthContext';
 import { supabase } from './lib/supabase';
@@ -451,7 +459,9 @@ export default function App() {
         {/* Page content */}
         {!isFeed ? (
           <div className="flex-1 h-full overflow-hidden">
-            {renderPage()}
+            <Suspense fallback={<PageSpinner />}>
+              {renderPage()}
+            </Suspense>
           </div>
         ) : (
           <GlobalChatPage
