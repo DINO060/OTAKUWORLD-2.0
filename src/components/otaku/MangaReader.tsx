@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { ArrowLeft, Settings, BookOpen, ChevronLeft, ChevronRight, Flag, Loader } from 'lucide-react';
+import { PdfReader } from './PdfReader';
 import JSZip from 'jszip';
 import type { MangaTitle } from './types';
 import type { Chapter as DBChapter } from '../../types';
@@ -139,11 +140,10 @@ export function MangaReader({ manga, chapter, allChapters, onBack }: MangaReader
       >
         {/* PDF Reader */}
         {isPdf && resolvedUrl && (
-          <iframe
-            src={resolvedUrl}
-            className="w-full flex-1 border-0"
-            title={`${manga.title} Ch.${currentChapter.chapterNumber}`}
-            style={{ background: '#1a1a25' }}
+          <PdfReader
+            url={resolvedUrl}
+            onNextChapter={nextChapter ? () => goToChapter(nextChapter) : undefined}
+            nextChapterLabel={nextChapter ? `Chapitre ${nextChapter.chapterNumber} →` : undefined}
           />
         )}
 
