@@ -438,7 +438,7 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
 
       <main className="flex-1 overflow-hidden flex" onClick={handleCloseMenus}>
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto p-4 pb-0">
+      <div className="flex-1 overflow-y-auto px-2 sm:px-4 pt-2 sm:pt-4 pb-0">
         {/* Active Filter Badge */}
         <AnimatePresence>
           {selectedHashtag && (
@@ -478,7 +478,7 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
         </AnimatePresence>
 
         {/* Messages */}
-        <div className="max-w-xl mx-auto space-y-4">
+        <div className="max-w-xl mx-auto space-y-2 sm:space-y-4">
           {filteredMessages.map((message) => {
             const msgUser = getUserById(message.userId);
             if (!msgUser) return null;
@@ -503,7 +503,7 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
                 </div>
 
                 {/* Message Bubble */}
-                <div className={`min-w-0 max-w-[75%] sm:max-w-[70%] ${isCurrentUser ? 'items-end' : 'items-start'} flex flex-col`}>
+                <div className={`min-w-0 max-w-[80%] sm:max-w-[70%] ${isCurrentUser ? 'items-end' : 'items-start'} flex flex-col`}>
                   {/* Message Content with Menu */}
                   <div className="relative group flex items-end gap-1 flex-row">
                     <div className="relative min-w-0">
@@ -873,7 +873,7 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: 100, opacity: 0 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed bottom-[130px] right-5 z-50 w-[calc(100%-2.5rem)] max-w-[320px]"
+              className="fixed bottom-[148px] right-3 sm:right-5 z-50 w-[calc(100%-1.5rem)] sm:w-[calc(100%-2.5rem)] max-w-[320px]"
             >
               <div className="bg-card rounded-2xl shadow-2xl overflow-hidden border border-border">
                 <div className="p-4">
@@ -1195,7 +1195,7 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
       )}
 
       {/* Bottom Input Area */}
-      <div className="flex-shrink-0 bg-card border-t border-border flex items-center px-3 py-2 gap-2 z-30">
+      <div className="flex-shrink-0 bg-card border-t border-border flex items-center px-2 sm:px-3 py-2 gap-1 sm:gap-2 z-30">
         <button
           onClick={() => { inputRef.current?.blur(); setIsEmojiPickerOpen(!isEmojiPickerOpen); setIsGifPickerOpen(false); }}
           className={`p-2 rounded-full transition-colors flex-shrink-0 ${isEmojiPickerOpen ? 'bg-purple-600 text-white' : 'hover:bg-secondary text-muted-foreground'}`}
@@ -1269,7 +1269,7 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
       <button
         onClick={() => { unreadMentionCount > 0 ? setShowMentionPanel(true) : setIsHashtagPanelOpen(true); }}
         onContextMenu={(e) => { e.preventDefault(); setIsHashtagPanelOpen(true); }}
-        style={{ position: 'fixed', bottom: 70, right: 12, zIndex: 9999 }}
+        style={{ position: 'fixed', bottom: 82, right: 14, zIndex: 9999 }}
         className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg hover:shadow-2xl transition-shadow"
       >
         <Hash className="w-6 h-6 sm:w-8 sm:h-8 text-white" strokeWidth={2.5} />

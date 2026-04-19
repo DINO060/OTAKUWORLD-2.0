@@ -416,7 +416,7 @@ export default function App() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -8, scale: 0.97 }}
               transition={{ type: 'spring', damping: 28, stiffness: 360 }}
-              className="fixed top-[60px] right-3 z-50 w-[calc(100vw-24px)] max-w-[340px]"
+              className="fixed top-[60px] right-2 z-50 w-[calc(100vw-16px)] max-w-[340px]"
               onClick={e => e.stopPropagation()}
             >
               <div className="bg-card border border-border rounded-2xl shadow-2xl overflow-hidden">
@@ -498,7 +498,7 @@ export default function App() {
 
       {/* PWA Install Banner */}
       {showInstallBanner && (
-        <div className="fixed bottom-20 left-4 right-16 z-[90] flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl"
+        <div className="fixed bottom-20 left-3 right-3 z-[90] flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl"
           style={{ background: '#1a1a2e', border: '1px solid rgba(168,85,247,0.3)' }}>
           <button onClick={() => setShowInstallBanner(false)} className="text-gray-500 hover:text-white text-xl leading-none flex-shrink-0 -ml-1">×</button>
           <span style={{ fontSize: '24px' }}>⚔️</span>
