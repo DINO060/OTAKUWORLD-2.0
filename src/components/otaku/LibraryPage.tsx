@@ -1,12 +1,12 @@
-import React, { useState, useMemo } from 'react';
-import { Search, Plus, X, ArrowLeft } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { Search, Plus, X, ArrowLeft, Heart } from 'lucide-react';
 import { MangaCard } from './MangaCard';
 import { MangaDetailPage } from './MangaDetailPage';
 import PublishChapter from '../PublishChapter';
 import { useChapters } from '../../contexts/ChaptersContext';
 import type { MangaTitle } from './types';
 
-type LibraryTab = 'manga' | 'anime' | 'webtoon' | 'ln';
+type LibraryTab = 'manga' | 'anime' | 'webtoon' | 'ln' | 'favorites';
 
 interface LibraryPageProps {
   onBack: () => void;
@@ -18,10 +18,46 @@ export function LibraryPage({ onBack }: LibraryPageProps) {
   const [showPublish, setShowPublish] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const { chapters, isLoading, getAllWorks } = useChapters();
+
+  useEffect(() => {
+    const stored = JSON.parse(localStorage.getItem('library_favorites') || '[]');
+    setFavoriteIds(new Set(stored));
+  }, []);
+
+  const toggleFavorite = useCallback((id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setFavoriteIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      localStorage.setItem('library_favorites', JSON.stringify([...next]));
+      return next;
+    });
+  }, []);
+
+  // All works as MangaTitle (unfiltered by tab)
+  const allWorksMapped = useMemo(() => {
+    return getAllWorks().map((work): MangaTitle => ({
+      id: `${work.workTitle}-${work.authorId}`,
+      title: work.workTitle,
+      coverImage: work.coverImage || '',
+      rating: 0,
+      chapters: work.chapterCount,
+      status: work.status === 'completed' ? 'completed' : 'ongoing',
+      genre: work.tags.map(t => t.replace('#', '')),
+      icon: work.workType === 'anime' ? '🎬' : work.workType === 'webtoon' ? '📱' : work.workType === 'ln' ? '📝' : '📖',
+      author: work.author,
+      authorId: work.authorId,
+      description: work.description,
+    }));
+  }, [getAllWorks]);
 
   // Convert real works to MangaTitle format, filtered by active tab
   const allWorks = useMemo(() => {
+    if (activeTab === 'favorites') {
+      return allWorksMapped.filter(w => favoriteIds.has(w.id));
+    }
     const works = getAllWorks();
     return works
       .filter(work => work.workType === activeTab)
@@ -99,6 +135,7 @@ export function LibraryPage({ onBack }: LibraryPageProps) {
     { id: 'anime' as const, label: 'Anime' },
     { id: 'webtoon' as const, label: 'Webtoon' },
     { id: 'ln' as const, label: 'LN' },
+    { id: 'favorites' as const, label: `❤️ ${favoriteIds.size > 0 ? favoriteIds.size : ''}`.trim() },
   ];
 
   if (showPublish) {
@@ -358,9 +395,24 @@ export function LibraryPage({ onBack }: LibraryPageProps) {
                       <div
                         key={manga.id}
                         onClick={() => setSelectedManga(manga)}
-                        className="cursor-pointer"
+                        className="cursor-pointer relative"
                       >
                         <MangaCard manga={manga} size="medium" />
+                        <button
+                          onClick={(e) => toggleFavorite(manga.id, e)}
+                          className="absolute top-2 left-2 p-1.5 rounded-full transition-colors z-10"
+                          style={{
+                            background: 'rgba(0,0,0,0.5)',
+                          }}
+                        >
+                          <Heart
+                            size={14}
+                            style={{
+                              color: favoriteIds.has(manga.id) ? '#ff6b9d' : '#ffffff',
+                              fill: favoriteIds.has(manga.id) ? '#ff6b9d' : 'none',
+                            }}
+                          />
+                        </button>
                       </div>
                     ))}
                 </div>
