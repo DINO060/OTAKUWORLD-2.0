@@ -15,6 +15,7 @@ import AdminPanel from './components/AdminPanel';
 import OtakuWorld from './components/Otaku';
 import LoupGarou from './components/LoupGarou';
 import GlobalChatPage from './components/GlobalChatPage';
+import SplashScreen from './components/SplashScreen';
 import { useChat } from './contexts/ChatContext';
 import { useAuth } from './contexts/AuthContext';
 import { supabase } from './lib/supabase';
@@ -24,7 +25,7 @@ import { usePrivateMessages } from './contexts/PrivateMessagesContext';
 
 export default function App() {
   const { currentUser } = useChat();
-  const { requireAuth, isAuthenticated, profile, user, updateProfile, setShowAuthModal } = useAuth();
+  const { requireAuth, isAuthenticated, profile, user, updateProfile, setShowAuthModal, isLoading } = useAuth();
   const { notifications, unreadCount, markAllRead, dismiss, clearAll } = useNotifications();
   const { conversations } = usePrivateMessages();
   const dmUnreadCount = conversations.reduce((sum, c) => sum + c.unreadCount, 0);
@@ -275,6 +276,8 @@ export default function App() {
   };
 
   const isFeed = currentPage === 'feed';
+
+  if (isLoading) return <SplashScreen />;
 
   return (
     <div className="h-dvh flex bg-background overflow-hidden" style={{ height: '100dvh' }}>
