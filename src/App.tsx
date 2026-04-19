@@ -290,96 +290,117 @@ export default function App() {
   return (
     <div className="h-dvh flex bg-background overflow-hidden" style={{ height: '100dvh' }}>
 
-      {/* ========== SIDEBAR ========== */}
-      <aside
-        className="h-dvh flex flex-col border-r flex-shrink-0 transition-all duration-300 ease-in-out overflow-hidden"
+      {/* ========== SIDEBAR DRAWER (fixed overlay) ========== */}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              key="sidebar-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-40"
+              style={{ background: 'rgba(0,0,0,0.65)' }}
+              onClick={() => setIsMenuOpen(false)}
+            />
 
-        style={{
-          background: '#0e1621',
-          borderColor: 'rgba(255,255,255,0.06)',
-          width: isMenuOpen ? 250 : 0,
-        }}
-      >
-        <div className="w-[250px] flex flex-col h-full flex-shrink-0">
-        {/* Logo + close */}
-        <div className="px-4 pt-5 pb-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">C</div>
-            <h1 className="text-white text-lg font-bold">Comment Live</h1>
-          </div>
-          <button
-            onClick={() => setIsMenuOpen(false)}
-            className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
-          >
-            <X className="w-5 h-5 text-gray-400" />
-          </button>
-        </div>
-
-        {/* Nav items */}
-        <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
-          <SidebarItem icon={MessageCircle} iconBg="#2ecc71" label="Global Chat" active={currentPage === 'feed'} onClick={() => { setCurrentPage('feed'); setIsMenuOpen(false); }} />
-          <SidebarItem icon={MessageSquare} iconBg="#3498db" label="Messages Privés" active={currentPage === 'inbox' || currentPage === 'private-chat'} badge={dmUnreadCount} onClick={() => { setCurrentPage('inbox'); setIsMenuOpen(false); }} />
-          <SidebarItem icon={'🎌'} iconBg="#e74c8b" label="Otaku" active={currentPage === 'otaku'} onClick={() => { setCurrentPage('otaku'); setIsMenuOpen(false); }} />
-          <SidebarItem icon={'🐺'} iconBg="#27ae60" label="Loup-Garou" active={currentPage === 'loup-garou'} onClick={() => { setCurrentPage('loup-garou'); setIsMenuOpen(false); }} />
-
-          <div className="my-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }} />
-
-          <SidebarItem icon={SettingsIcon} iconBg="#95a5a6" label="Settings" active={currentPage === 'settings'} onClick={() => { setCurrentPage('settings'); setIsMenuOpen(false); }} />
-          {profile?.isAdmin && (
-            <SidebarItem icon={ShieldAlert} iconBg="#e74c3c" label="Admin" active={currentPage === 'admin'} onClick={() => { setCurrentPage('admin'); setIsMenuOpen(false); }} />
-          )}
-        </nav>
-
-        {/* User profile at bottom */}
-        <div className="px-3 pb-4 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          {!isAuthenticated && (
-            <button
-              onClick={() => { setShowAuthModal(true); setIsMenuOpen(false); }}
-              className="w-full mb-2 py-2.5 rounded-xl font-bold text-sm text-white transition-all hover:opacity-90"
-              style={{ background: 'linear-gradient(135deg, #8b5cf6, #6366f1)' }}
+            {/* Drawer */}
+            <motion.aside
+              key="sidebar"
+              initial={{ x: -280 }}
+              animate={{ x: 0 }}
+              exit={{ x: -280 }}
+              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+              className="fixed left-0 top-0 h-full flex flex-col z-50"
+              style={{
+                width: 270,
+                background: '#0e1621',
+                borderRight: '1px solid rgba(255,255,255,0.06)',
+              }}
             >
-              Se connecter
-            </button>
-          )}
-          <button
-            onClick={() => { setCurrentPage('settings'); setIsMenuOpen(false); }}
-            className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors"
-          >
-            <div
-              className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0"
-              style={{ backgroundColor: currentUser?.avatarColor || '#3b82f6' }}
-            >
-              {currentUser?.avatarImage ? (
-                <img src={currentUser.avatarImage} alt="" className="w-full h-full rounded-full object-cover" />
-              ) : (
-                getInitials(profile?.username || currentUser?.username || 'U')
-              )}
-            </div>
-            <div className="text-left flex-1 min-w-0">
-              <p className="text-sm font-semibold text-white truncate">{profile?.username || currentUser?.username || 'Guest'}</p>
-            </div>
-            <div className="relative" onClick={(e) => { e.stopPropagation(); setIsNotifOpen(!isNotifOpen); setIsMenuOpen(false); }}>
-              <div className={`p-1.5 rounded-full transition-colors ${isNotifOpen ? 'bg-purple-500/20' : ''}`}>
-                <Bell className={`w-4 h-4 transition-colors ${isNotifOpen ? 'text-purple-400' : 'text-gray-500'}`} />
+              {/* Logo + close */}
+              <div className="px-4 pt-5 pb-4 flex items-center justify-between flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">C</div>
+                  <h1 className="text-white text-lg font-bold">Comment Live</h1>
+                </div>
+                <button
+                  onClick={() => setIsMenuOpen(false)}
+                  className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-400" />
+                </button>
               </div>
-              {isNotifOpen && (
-                <>
-                  <span className="absolute -left-0.5 top-1/2 -translate-y-1/2 w-1 h-3 bg-purple-500 rounded-full" />
-                  <span className="absolute -right-0.5 top-1/2 -translate-y-1/2 w-1 h-3 bg-purple-500 rounded-full" />
-                </>
-              )}
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-[9px] font-bold text-white">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
-              )}
-            </div>
-          </button>
-        </div>
-        </div>{/* end inner w-[250px] wrapper */}
-      </aside>
 
-      {/* ========== MAIN CONTENT AREA ========== */}
+              {/* Nav items */}
+              <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
+                <SidebarItem icon={MessageCircle} iconBg="#2ecc71" label="Global Chat" active={currentPage === 'feed'} onClick={() => { setCurrentPage('feed'); setIsMenuOpen(false); }} />
+                <SidebarItem icon={MessageSquare} iconBg="#3498db" label="Messages Privés" active={currentPage === 'inbox' || currentPage === 'private-chat'} badge={dmUnreadCount} onClick={() => { setCurrentPage('inbox'); setIsMenuOpen(false); }} />
+                <SidebarItem icon={'🎌'} iconBg="#e74c8b" label="Otaku" active={currentPage === 'otaku'} onClick={() => { setCurrentPage('otaku'); setIsMenuOpen(false); }} />
+                <SidebarItem icon={'🐺'} iconBg="#27ae60" label="Loup-Garou" active={currentPage === 'loup-garou'} onClick={() => { setCurrentPage('loup-garou'); setIsMenuOpen(false); }} />
+
+                <div className="my-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }} />
+
+                <SidebarItem icon={SettingsIcon} iconBg="#95a5a6" label="Settings" active={currentPage === 'settings'} onClick={() => { setCurrentPage('settings'); setIsMenuOpen(false); }} />
+                {profile?.isAdmin && (
+                  <SidebarItem icon={ShieldAlert} iconBg="#e74c3c" label="Admin" active={currentPage === 'admin'} onClick={() => { setCurrentPage('admin'); setIsMenuOpen(false); }} />
+                )}
+              </nav>
+
+              {/* User profile at bottom */}
+              <div className="px-3 pb-4 pt-2 flex-shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                {!isAuthenticated && (
+                  <button
+                    onClick={() => { setShowAuthModal(true); setIsMenuOpen(false); }}
+                    className="w-full mb-2 py-2.5 rounded-xl font-bold text-sm text-white transition-all hover:opacity-90"
+                    style={{ background: 'linear-gradient(135deg, #8b5cf6, #6366f1)' }}
+                  >
+                    Se connecter
+                  </button>
+                )}
+                <button
+                  onClick={() => { setCurrentPage('settings'); setIsMenuOpen(false); }}
+                  className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors"
+                >
+                  <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0"
+                    style={{ backgroundColor: currentUser?.avatarColor || '#3b82f6' }}
+                  >
+                    {currentUser?.avatarImage ? (
+                      <img src={currentUser.avatarImage} alt="" className="w-full h-full rounded-full object-cover" />
+                    ) : (
+                      getInitials(profile?.username || currentUser?.username || 'U')
+                    )}
+                  </div>
+                  <div className="text-left flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-white truncate">{profile?.username || currentUser?.username || 'Guest'}</p>
+                  </div>
+                  <div className="relative" onClick={(e) => { e.stopPropagation(); setIsNotifOpen(!isNotifOpen); setIsMenuOpen(false); }}>
+                    <div className={`p-1.5 rounded-full transition-colors ${isNotifOpen ? 'bg-purple-500/20' : ''}`}>
+                      <Bell className={`w-4 h-4 transition-colors ${isNotifOpen ? 'text-purple-400' : 'text-gray-500'}`} />
+                    </div>
+                    {isNotifOpen && (
+                      <>
+                        <span className="absolute -left-0.5 top-1/2 -translate-y-1/2 w-1 h-3 bg-purple-500 rounded-full" />
+                        <span className="absolute -right-0.5 top-1/2 -translate-y-1/2 w-1 h-3 bg-purple-500 rounded-full" />
+                      </>
+                    )}
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-[9px] font-bold text-white">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ========== MAIN CONTENT AREA (always full width) ========== */}
       <div className="flex-1 flex flex-col min-w-0 min-h-0 relative">
 
         {/* Notification overlay */}
