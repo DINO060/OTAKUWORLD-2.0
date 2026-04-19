@@ -11,6 +11,7 @@ interface PdfReaderProps {
   url: string;
   onNextChapter?: () => void;
   nextChapterLabel?: string;
+  onToggleControls?: () => void;
 }
 
 function PdfPage({ pdf, pageNum, scale }: { pdf: pdfjsLib.PDFDocumentProxy; pageNum: number; scale: number }) {
@@ -20,7 +21,6 @@ function PdfPage({ pdf, pageNum, scale }: { pdf: pdfjsLib.PDFDocumentProxy; page
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     let cancelled = false;
 
     (async () => {
@@ -50,17 +50,13 @@ function PdfPage({ pdf, pageNum, scale }: { pdf: pdfjsLib.PDFDocumentProxy; page
     <div className="w-full flex justify-center mb-1">
       <canvas
         ref={canvasRef}
-        style={{
-          display: 'block',
-          maxWidth: '100%',
-          boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
-        }}
+        style={{ display: 'block', maxWidth: '100%', boxShadow: '0 2px 12px rgba(0,0,0,0.4)' }}
       />
     </div>
   );
 }
 
-export function PdfReader({ url, onNextChapter, nextChapterLabel }: PdfReaderProps) {
+export function PdfReader({ url, onNextChapter, nextChapterLabel, onToggleControls }: PdfReaderProps) {
   const [pdf, setPdf] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [totalPages, setTotalPages] = useState(0);
   const [scale, setScale] = useState(1.4);
@@ -102,10 +98,11 @@ export function PdfReader({ url, onNextChapter, nextChapterLabel }: PdfReaderPro
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      {/* Zoom toolbar */}
+      {/* Zoom toolbar — stops click from reaching the toggle handler */}
       <div
         className="flex items-center justify-end gap-2 px-4 py-2 flex-shrink-0"
         style={{ background: '#1a1a28', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+        onClick={e => e.stopPropagation()}
       >
         <button
           onClick={() => setScale(s => Math.max(s - 0.2, 0.6))}
@@ -124,8 +121,12 @@ export function PdfReader({ url, onNextChapter, nextChapterLabel }: PdfReaderPro
         </button>
       </div>
 
-      {/* All pages scrollable */}
-      <div className="flex-1 overflow-y-auto" style={{ background: '#0c0c14' }}>
+      {/* All pages scrollable — click toggles header/footer */}
+      <div
+        className="flex-1 overflow-y-auto"
+        style={{ background: '#0c0c14' }}
+        onClick={onToggleControls}
+      >
         <div className="py-2">
           {pdf && Array.from({ length: totalPages }, (_, i) => (
             <PdfPage key={`${url}-${i + 1}-${scale}`} pdf={pdf} pageNum={i + 1} scale={scale} />
@@ -134,7 +135,7 @@ export function PdfReader({ url, onNextChapter, nextChapterLabel }: PdfReaderPro
 
         {/* End of chapter */}
         {pdf && (
-          <div className="text-center py-8">
+          <div className="text-center py-8" onClick={e => e.stopPropagation()}>
             <p style={{ fontSize: '15px', fontWeight: 700, color: '#e8e8ed', marginBottom: '8px' }}>
               Fin du chapitre
             </p>

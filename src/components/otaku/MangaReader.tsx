@@ -136,7 +136,7 @@ export function MangaReader({ manga, chapter, allChapters, onBack }: MangaReader
       {/* Reader Content */}
       <div
         className="flex-1 overflow-hidden flex flex-col"
-        onClick={() => !isPdf && !isCbz && setShowControls(!showControls)}
+        onClick={() => !isCbz && setShowControls(v => !v)}
       >
         {/* PDF Reader */}
         {isPdf && resolvedUrl && (
@@ -144,6 +144,7 @@ export function MangaReader({ manga, chapter, allChapters, onBack }: MangaReader
             url={resolvedUrl}
             onNextChapter={nextChapter ? () => goToChapter(nextChapter) : undefined}
             nextChapterLabel={nextChapter ? `Chapitre ${nextChapter.chapterNumber} →` : undefined}
+            onToggleControls={() => setShowControls(v => !v)}
           />
         )}
 
