@@ -134,11 +134,8 @@ export default function Settings({ onBack, onAdminClick }: SettingsProps) {
 
   useEffect(() => {
     const root = document.documentElement;
-    if (settings.theme === 'system') {
-      root.classList.toggle('dark', window.matchMedia('(prefers-color-scheme: dark)').matches);
-    } else {
-      root.classList.toggle('dark', settings.theme === 'dark');
-    }
+    // Always force dark — light mode not fully supported (hardcoded dark colors in OtakuWorld)
+    root.classList.add('dark');
   }, [settings.theme]);
 
   const updateSetting = <K extends keyof UserSettings>(key: K, value: UserSettings[K]) => {
@@ -797,7 +794,6 @@ export default function Settings({ onBack, onAdminClick }: SettingsProps) {
             <span className="text-sm text-foreground">Thème</span>
           </div>
           <div className="flex gap-2">
-            <RadioOption selected={settings.theme === 'light'} label="Clair" icon={Sun} onClick={() => updateSetting('theme', 'light')} />
             <RadioOption selected={settings.theme === 'dark'} label="Sombre" icon={Moon} onClick={() => updateSetting('theme', 'dark')} />
             <RadioOption selected={settings.theme === 'system'} label="Système" icon={Monitor} onClick={() => updateSetting('theme', 'system')} />
           </div>

@@ -373,16 +373,10 @@ export default function ProfileCard({ isOpen, onClose, variant, user, onMessage,
               overflow-hidden"
           >
             {/* COVER IMAGE LAYER */}
-            <div className="relative h-16 flex-shrink-0 overflow-hidden bg-gradient-to-br from-blue-500/90 via-purple-500/80 to-pink-500/90">
+            <div className="relative h-16 flex-shrink-0 overflow-hidden" style={{ background: 'linear-gradient(135deg, #6c5ce7, #a29bfe)' }}>
               {coverImage ? (
                 <img src={coverImage} className="w-full h-full object-cover" alt="Cover" />
-              ) : (
-                <>
-                  <div className="absolute top-0 right-0 w-16 h-16 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-                  <div className="absolute bottom-0 left-0 w-12 h-12 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
-                </>
-              )}
-              <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-transparent to-black/20" />
+              ) : null}
 
               {/* Change Cover Button */}
               {variant === 'owner' && isEditMode && (

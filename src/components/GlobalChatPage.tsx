@@ -643,7 +643,7 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
                       onClick={(e) => { e.stopPropagation(); setReactionPickerOpen(reactionPickerOpen === message.id ? null : message.id); }}
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 w-6 h-6 bg-secondary hover:bg-secondary/70 rounded-full flex items-center justify-center mb-1"
+                      className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0 w-6 h-6 bg-secondary hover:bg-secondary/70 rounded-full flex items-center justify-center mb-1"
                     >
                       <Heart className="w-3 h-3 text-muted-foreground" />
                     </motion.button>
@@ -659,7 +659,7 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
                       }}
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 w-6 h-6 bg-secondary hover:bg-secondary/70 rounded-full flex items-center justify-center mb-1"
+                      className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0 w-6 h-6 bg-secondary hover:bg-secondary/70 rounded-full flex items-center justify-center mb-1"
                     >
                       <CornerUpLeft className="w-3 h-3 text-muted-foreground" />
                     </motion.button>
@@ -673,7 +673,7 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
                         }}
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 w-6 h-6 bg-secondary hover:bg-red-500/20 rounded-full flex items-center justify-center mb-1"
+                        className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0 w-6 h-6 bg-secondary hover:bg-red-500/20 rounded-full flex items-center justify-center mb-1"
                       >
                         <Flag className="w-3 h-3 text-muted-foreground hover:text-red-400" />
                       </motion.button>
