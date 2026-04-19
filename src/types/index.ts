@@ -127,10 +127,12 @@ export interface Chapter {
   fileName?: string;
   fileType?: string;      // 'pdf' | 'cbz' etc.
   telegramFileId?: string; // Present when file lives on Telegram (bot uploads)
+  workType?: WorkType;    // 'manga' | 'anime' | 'webtoon' | 'ln'
 }
 
 export type ChapterStatus = 'new' | 'ongoing' | 'completed';
 export type ChapterContentType = 'text' | 'images' | 'file' | 'pdf' | 'cbz';
+export type WorkType = 'manga' | 'anime' | 'webtoon' | 'ln';
 
 export interface ChapterFilter {
   type: 'all' | 'recent' | 'popular' | 'ongoing' | 'completed';
@@ -209,6 +211,7 @@ export interface WorkSummary {
   latestChapterNumber: number;
   chapterCount: number;
   status: ChapterStatus;
+  workType: WorkType;
 }
 
 export interface BatchPublishProgress {

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft, Upload, X, AlertCircle, Check, FileText, Image as ImageIcon, File, Loader2, BookOpen, PlusCircle, Layers, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useChapters } from '../contexts/ChaptersContext';
-import type { WorkSummary, BatchPublishProgress, ContentRating } from '../types';
+import type { WorkSummary, BatchPublishProgress, ContentRating, WorkType } from '../types';
 import { validateCoverImage, validateChapterImage, validatePdfOrCbz } from '../lib/fileValidation';
 
 interface PublishChapterProps {
@@ -26,6 +26,7 @@ export default function PublishChapter({ onBack, onPublishComplete, preSelectedW
 
   const [contentType, setContentType] = useState<'text' | 'images' | 'file'>('text');
   const [contentRating, setContentRating] = useState<ContentRating>('all');
+  const [workType, setWorkType] = useState<WorkType>('manga');
 
   // Step 1 - Chapter Info
   const [workTitle, setWorkTitle] = useState('');
@@ -233,6 +234,7 @@ export default function PublishChapter({ onBack, onPublishComplete, preSelectedW
             existingCoverUrl: existingCoverUrl || undefined,
             contentType: 'file',
             contentRating,
+            workType,
           },
           (progress) => setBatchProgress(progress)
         );
@@ -262,6 +264,7 @@ export default function PublishChapter({ onBack, onPublishComplete, preSelectedW
           description,
           contentType: actualContentType,
           contentRating,
+          workType,
           textContent: contentType === 'text' ? textContent : undefined,
           coverImageFile: coverImageFile || undefined,
           existingCoverUrl: existingCoverUrl || undefined,
@@ -609,6 +612,34 @@ export default function PublishChapter({ onBack, onPublishComplete, preSelectedW
                           ))}
                         </div>
                       )}
+                    </div>
+
+                    {/* Work Type */}
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-1.5">
+                        Type d'œuvre
+                      </label>
+                      <div className="flex gap-2 flex-wrap">
+                        {([
+                          { value: 'manga' as const, label: '📖 Manga' },
+                          { value: 'webtoon' as const, label: '📱 Webtoon' },
+                          { value: 'ln' as const, label: '📝 Light Novel' },
+                          { value: 'anime' as const, label: '🎬 Anime' },
+                        ]).map(opt => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => setWorkType(opt.value)}
+                            className={`px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${
+                              workType === opt.value
+                                ? 'bg-[#6c5ce7]/20 text-[#a29bfe] border-[#6c5ce7]/40'
+                                : 'bg-secondary text-muted-foreground border-border hover:bg-accent'
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
 
                     {/* Content Rating */}

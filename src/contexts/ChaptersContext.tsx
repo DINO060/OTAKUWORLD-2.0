@@ -162,6 +162,7 @@ export function ChaptersProvider({ children }: ChaptersProviderProps) {
         fileUrl: ch.file_url,
         fileType: ch.file_type,
         telegramFileId: ch.telegram_file_id,
+        workType: (ch.work_type || 'manga') as Chapter['workType'],
       }));
 
       setChapters(transformedChapters);
@@ -340,6 +341,7 @@ export function ChaptersProvider({ children }: ChaptersProviderProps) {
           status: chapterInput.status,
           content_type: chapterInput.contentType,
           content_rating: chapterInput.contentRating || 'all',
+          work_type: (chapterInput as any).workType || 'manga',
           text_content: chapterInput.textContent,
           cover_url: coverUrl,
           file_url: fileUrl,
@@ -620,6 +622,7 @@ export function ChaptersProvider({ children }: ChaptersProviderProps) {
         latestChapterNumber: Math.max(...chaps.map(ch => ch.chapterNumber)),
         chapterCount: chaps.length,
         status: latest.status,
+        workType: latest.workType || 'manga',
       });
     });
 
@@ -655,6 +658,7 @@ export function ChaptersProvider({ children }: ChaptersProviderProps) {
         latestChapterNumber: Math.max(...chaps.map(ch => ch.chapterNumber)),
         chapterCount: chaps.length,
         status: latest.status,
+        workType: latest.workType || 'manga',
       });
     });
 
@@ -664,7 +668,7 @@ export function ChaptersProvider({ children }: ChaptersProviderProps) {
   // Batch publish: upload multiple chapters sequentially
   const publishBatch = useCallback(async (
     files: { file: File; chapterNumber: number }[],
-    meta: { workTitle: string; description: string; tags: string[]; status: string; coverImageFile?: File; existingCoverUrl?: string; contentType: string; contentRating?: string },
+    meta: { workTitle: string; description: string; tags: string[]; status: string; coverImageFile?: File; existingCoverUrl?: string; contentType: string; contentRating?: string; workType?: string },
     onProgress?: (progress: BatchPublishProgress) => void
   ): Promise<{ error?: string }> => {
     if (!user) return { error: 'You must be logged in to publish' };
@@ -692,6 +696,7 @@ export function ChaptersProvider({ children }: ChaptersProviderProps) {
         description: meta.description,
         contentType: actualContentType as any,
         contentRating: (meta.contentRating as any) || 'all',
+        workType: (meta.workType as any) || 'manga',
         chapterFile: file,
         fileName: file.name,
         fileType: file.type,

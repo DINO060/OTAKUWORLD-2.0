@@ -20,29 +20,32 @@ export function LibraryPage({ onBack }: LibraryPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const { chapters, isLoading, getAllWorks } = useChapters();
 
-  // Convert real works to MangaTitle format for display
+  // Convert real works to MangaTitle format, filtered by active tab
   const allWorks = useMemo(() => {
     const works = getAllWorks();
-    return works.map((work): MangaTitle => ({
-      id: `${work.workTitle}-${work.authorId}`,
-      title: work.workTitle,
-      coverImage: work.coverImage || '',
-      rating: 0,
-      chapters: work.chapterCount,
-      status: work.status === 'completed' ? 'completed' : 'ongoing',
-      genre: work.tags.map(t => t.replace('#', '')),
-      icon: '📖',
-      author: work.author,
-      authorId: work.authorId,
-      description: work.description,
-    }));
-  }, [getAllWorks]);
+    return works
+      .filter(work => work.workType === activeTab)
+      .map((work): MangaTitle => ({
+        id: `${work.workTitle}-${work.authorId}`,
+        title: work.workTitle,
+        coverImage: work.coverImage || '',
+        rating: 0,
+        chapters: work.chapterCount,
+        status: work.status === 'completed' ? 'completed' : 'ongoing',
+        genre: work.tags.map(t => t.replace('#', '')),
+        icon: activeTab === 'anime' ? '🎬' : activeTab === 'webtoon' ? '📱' : activeTab === 'ln' ? '📝' : '📖',
+        author: work.author,
+        authorId: work.authorId,
+        description: work.description,
+      }));
+  }, [getAllWorks, activeTab]);
 
-  // Recent chapters (last 10, mapped to MangaTitle for display)
+  // Recent chapters filtered by active tab (last 10)
   const recentUpdates = useMemo(() => {
     const seen = new Set<string>();
     const recent: MangaTitle[] = [];
     for (const ch of chapters) {
+      if ((ch.workType || 'manga') !== activeTab) continue;
       const key = `${ch.title.toLowerCase().trim()}-${ch.authorId}`;
       if (seen.has(key)) continue;
       seen.add(key);
@@ -229,7 +232,7 @@ export function LibraryPage({ onBack }: LibraryPageProps) {
             <div className="text-center">
               <span style={{ fontSize: '48px' }}>📚</span>
               <p className="mt-3" style={{ fontSize: '15px', fontWeight: 700, color: '#e8e8ed' }}>
-                Aucun chapitre publié
+                Aucun contenu {activeTab === 'anime' ? 'animé' : activeTab === 'webtoon' ? 'webtoon' : activeTab === 'ln' ? 'light novel' : 'manga'}
               </p>
               <p className="mt-1" style={{ fontSize: '13px', color: '#8888a0' }}>
                 Sois le premier à publier !
