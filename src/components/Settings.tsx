@@ -615,10 +615,10 @@ export default function Settings({ onBack, onAdminClick }: SettingsProps) {
                         <input type="text" value={editName} onChange={e => setEditName(e.target.value)} maxLength={30} placeholder="Ton nom" className="w-full px-3 py-2 rounded-xl text-sm outline-none" style={{ background: '#1a1a28', border: `1px solid ${S.border}`, color: S.text }} />
                       </div>
                       <div>
-                        <label className="text-xs mb-1 block" style={{ color: S.muted }}>@Username <span style={{ color: '#a29bfe' }}>(unique)</span></label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: S.muted }}>@</span>
-                          <input type="text" value={editHandle} onChange={e => setEditHandle(e.target.value.replace(/^@/, '').replace(/[^a-z0-9_]/gi, '').toLowerCase())} maxLength={20} placeholder="ton_username" className="w-full pl-7 pr-3 py-2 rounded-xl text-sm outline-none" style={{ background: '#1a1a28', border: `1px solid ${S.border}`, color: S.text }} />
+                        <label className="text-xs mb-1 block" style={{ color: S.muted }}>Username <span style={{ color: '#a29bfe' }}>(unique)</span></label>
+                        <div className="flex items-center rounded-xl overflow-hidden" style={{ background: '#1a1a28', border: `1px solid ${S.border}` }}>
+                          <span className="pl-3 pr-1 text-sm flex-shrink-0" style={{ color: S.muted }}>@</span>
+                          <input type="text" value={editHandle} onChange={e => setEditHandle(e.target.value.replace(/^@/, '').replace(/[^a-z0-9_]/gi, '').toLowerCase())} maxLength={20} placeholder="ton_username" className="flex-1 bg-transparent pr-3 py-2 text-sm outline-none" style={{ color: S.text }} />
                         </div>
                       </div>
                       <div>

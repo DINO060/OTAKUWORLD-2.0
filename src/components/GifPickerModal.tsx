@@ -164,10 +164,10 @@ export default function GifPickerModal({ isOpen, onClose, onSelect }: GifPickerM
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 16 }}
             transition={{ type: 'spring', damping: 26, stiffness: 320 }}
-            className="fixed inset-x-2 bottom-[60px] sm:bottom-auto sm:top-[5%] sm:inset-x-4 z-50 mx-auto max-w-[480px] flex flex-col"
+            className="fixed inset-x-0 bottom-0 sm:bottom-auto sm:top-[5%] sm:inset-x-4 z-50 mx-auto max-w-[480px] flex flex-col"
             onClick={e => e.stopPropagation()}
           >
-            <div className="bg-card rounded-2xl border border-border shadow-2xl flex flex-col overflow-hidden max-h-[60dvh] sm:max-h-[85vh]">
+            <div className="bg-card rounded-t-2xl sm:rounded-2xl border border-border shadow-2xl flex flex-col overflow-hidden max-h-[60dvh] sm:max-h-[85vh]">
 
               {/* ── Search bar ── */}
               <div className="flex items-center gap-2 px-3 pt-3 pb-2 flex-shrink-0">
