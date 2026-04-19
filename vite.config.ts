@@ -53,6 +53,21 @@
     build: {
       target: 'esnext',
       outDir: 'build',
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes('node_modules')) return;
+            if (id.includes('@supabase')) return 'vendor-supabase';
+            if (id.includes('pdfjs-dist')) return 'vendor-pdf';
+            if (id.includes('@emoji-mart')) return 'vendor-emoji';
+            if (id.includes('motion')) return 'vendor-motion';
+            if (id.includes('@radix-ui')) return 'vendor-radix';
+            if (id.includes('lucide-react')) return 'vendor-icons';
+            if (id.includes('react-dom') || id.includes('react/')) return 'vendor-react';
+            return 'vendor-misc';
+          },
+        },
+      },
     },
     server: {
       port: 3000,
