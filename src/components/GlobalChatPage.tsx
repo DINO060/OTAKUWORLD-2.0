@@ -1197,14 +1197,14 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
       {/* Bottom Input Area */}
       <div className="flex-shrink-0 bg-card border-t border-border flex items-center px-2 sm:px-3 py-2 gap-1 sm:gap-2 z-30">
         <button
-          onClick={() => { inputRef.current?.blur(); setIsEmojiPickerOpen(!isEmojiPickerOpen); setIsGifPickerOpen(false); }}
+          onClick={() => { setIsEmojiPickerOpen(!isEmojiPickerOpen); setIsGifPickerOpen(false); }}
           className={`p-2 rounded-full transition-colors flex-shrink-0 ${isEmojiPickerOpen ? 'bg-purple-600 text-white' : 'hover:bg-secondary text-muted-foreground'}`}
         >
           <Smile className="w-5 h-5" />
         </button>
 
         <button
-          onClick={() => { inputRef.current?.blur(); setIsGifPickerOpen(!isGifPickerOpen); setIsEmojiPickerOpen(false); }}
+          onClick={() => { setIsGifPickerOpen(!isGifPickerOpen); setIsEmojiPickerOpen(false); }}
           className={`px-2 py-1.5 rounded-full transition-colors text-xs font-bold flex-shrink-0 ${isGifPickerOpen ? 'bg-purple-600 text-white' : 'hover:bg-secondary text-muted-foreground'}`}
         >
           GIF

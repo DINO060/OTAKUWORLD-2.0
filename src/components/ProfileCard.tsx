@@ -344,31 +344,22 @@ export default function ProfileCard({ isOpen, onClose, variant, user, onMessage,
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/15 backdrop-blur-sm z-[100]"
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[100]"
           />
 
           {/* MODAL */}
           <motion.div
-            initial={{
-              opacity: 0,
-              y: window.innerWidth < 768 ? 100 : 0,
-              scale: window.innerWidth < 768 ? 1 : 0.96,
-            }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{
-              opacity: 0,
-              y: window.innerWidth < 768 ? 100 : 0,
-              scale: window.innerWidth < 768 ? 1 : 0.96,
-            }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
             transition={{ type: 'spring', damping: 28, stiffness: 320 }}
             className="fixed z-[101]
-              bottom-0 left-1/2 -translate-x-1/2
-              md:top-1/2 md:-translate-y-1/2 md:bottom-auto
-              w-[min(90vw,360px)] md:w-full md:max-w-[360px]
+              top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
+              w-[min(92vw,360px)]
               max-h-[85vh]
-              bg-[#1a1a1a]
-              rounded-t-3xl md:rounded-2xl
-              shadow-xl border border-white/10
+              bg-[#1a1a2e]
+              rounded-2xl
+              shadow-2xl border border-white/10
               flex flex-col
               overflow-hidden"
           >

@@ -189,7 +189,7 @@ export default function PrivateChat({ onBack, selectedUserId }: PrivateChatProps
   const online = isOnline(chatPartner.id);
 
   return (
-    <div className="h-full flex flex-col bg-background">
+    <div className="h-full flex flex-col" style={{ background: '#0c0c14' }}>
 
       {/* HEADER */}
       <header className="bg-gradient-to-r from-purple-600 to-indigo-600 shadow-lg flex-shrink-0 z-40">
@@ -251,19 +251,13 @@ export default function PrivateChat({ onBack, selectedUserId }: PrivateChatProps
                   {/* Incoming */}
                   {!message.isOutgoing && (
                     <>
-                      <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0 mt-1"
-                        style={{ backgroundColor: chatPartner.avatarColor }}
-                      >
-                        {getInitials(chatPartner.username)}
-                      </div>
-                      <div className="flex flex-col max-w-[75%] sm:max-w-[60%]">
+                      <div className="flex flex-col max-w-[85%] sm:max-w-[70%]">
                         {isMedia ? (
                           <div className="py-1">{renderContent(message.content)}</div>
                         ) : (
                           <div
                             className="rounded-2xl rounded-tl-sm px-4 py-2.5 shadow-sm"
-                            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.08)' }}
+                            style={{ background: '#212d3b', border: '1px solid rgba(255,255,255,0.06)' }}
                           >
                             <p className="text-foreground text-sm sm:text-base leading-relaxed break-words">
                               {message.content}
@@ -277,7 +271,7 @@ export default function PrivateChat({ onBack, selectedUserId }: PrivateChatProps
 
                   {/* Outgoing */}
                   {message.isOutgoing && (
-                    <div className="flex flex-col items-end max-w-[75%] sm:max-w-[60%]">
+                    <div className="flex flex-col items-end max-w-[85%] sm:max-w-[70%]">
                       <div className="relative group">
                         {isMedia ? (
                           <div className="py-1">{renderContent(message.content)}</div>
