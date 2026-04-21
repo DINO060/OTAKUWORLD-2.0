@@ -478,7 +478,7 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
         </AnimatePresence>
 
         {/* Messages */}
-        <div className="max-w-xl mx-auto space-y-2 sm:space-y-4">
+        <div className="max-w-xl mx-auto space-y-2">
           {filteredMessages.map((message) => {
             const msgUser = getUserById(message.userId);
             if (!msgUser) return null;
@@ -496,14 +496,14 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
                 {/* Avatar */}
                 <div
                   onClick={() => setSelectedUserProfile(msgUser.id)}
-                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white text-xs sm:text-sm font-semibold flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-blue-400 transition-all"
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-blue-400 transition-all"
                   style={{ backgroundColor: msgUser.avatarColor }}
                 >
                   {getInitials(msgUser.username)}
                 </div>
 
                 {/* Message Bubble */}
-                <div className={`min-w-0 max-w-[80%] sm:max-w-[70%] ${isCurrentUser ? 'items-end' : 'items-start'} flex flex-col`}>
+                <div className={`min-w-0 max-w-[85%] ${isCurrentUser ? 'items-end' : 'items-start'} flex flex-col`}>
                   {/* Message Content with Menu */}
                   <div className="relative group flex items-end gap-1 flex-row">
                     <div className="relative min-w-0">
@@ -539,7 +539,7 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
                         </div>
                       ) : (
                       <div
-                        className={`relative px-3 py-2 rounded-xl w-full overflow-hidden ${isCurrentUser ? 'rounded-br-sm' : 'rounded-bl-sm'}`}
+                        className={`relative px-3 pt-2 pb-5 rounded-xl w-full overflow-hidden ${isCurrentUser ? 'rounded-br-sm' : 'rounded-bl-sm'}`}
                         style={{ backgroundColor: isCurrentUser ? '#2b5278' : '#212d3b' }}
                       >
                         <p className="text-xs font-bold mb-0.5" style={{ color: isCurrentUser ? '#7eb8e6' : msgUser.avatarColor || '#6ab3f3' }}>
@@ -560,9 +560,21 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
                           </div>
                         )}
 
-                        <p className="text-sm leading-relaxed break-all pr-5 text-white" style={{ wordBreak: 'break-all', overflowWrap: 'anywhere' }}>
+                        <p className="text-sm leading-relaxed break-all text-white" style={{ wordBreak: 'break-all', overflowWrap: 'anywhere', paddingRight: isCurrentUser ? 20 : 0 }}>
                           {highlightHashtags(message.text)}
                         </p>
+
+                        {/* Timestamp inside bubble — Telegram style */}
+                        <div style={{ position: 'absolute', bottom: 4, right: 8, display: 'flex', alignItems: 'center', gap: 3 }}>
+                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', whiteSpace: 'nowrap' }}>{message.timestamp}</span>
+                          {isCurrentUser && (
+                            <svg width="15" height="11" viewBox="0 0 16 11" fill="none" style={{ color: '#5bb8f6', flexShrink: 0 }}>
+                              <path d="M11.5 1L5.5 8L3 5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M14.5 1L8.5 8L7.5 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          )}
+                        </div>
+
                         {isCurrentUser && (
                           <button
                             onClick={(e) => { e.stopPropagation(); setMessageMenuOpen(messageMenuOpen === message.id ? null : message.id); }}
@@ -641,11 +653,12 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
                     {/* Reaction Button */}
                     <motion.button
                       onClick={(e) => { e.stopPropagation(); setReactionPickerOpen(reactionPickerOpen === message.id ? null : message.id); }}
-                      whileHover={{ scale: 1.1 }}
+                      whileHover={{ scale: 1.15 }}
                       whileTap={{ scale: 0.9 }}
-                      className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0 w-6 h-6 bg-secondary hover:bg-secondary/70 rounded-full flex items-center justify-center mb-1"
+                      className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                      style={{ width: 28, height: 28, borderRadius: 14, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginBottom: 4 }}
                     >
-                      <Heart className="w-3 h-3 text-muted-foreground" />
+                      <Heart style={{ width: 13, height: 13, color: '#8899aa' }} />
                     </motion.button>
 
                     {/* Reply Button */}
@@ -657,11 +670,12 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
                         setEditText('');
                         setTimeout(() => inputRef.current?.focus(), 50);
                       }}
-                      whileHover={{ scale: 1.1 }}
+                      whileHover={{ scale: 1.15 }}
                       whileTap={{ scale: 0.9 }}
-                      className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0 w-6 h-6 bg-secondary hover:bg-secondary/70 rounded-full flex items-center justify-center mb-1"
+                      className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                      style={{ width: 28, height: 28, borderRadius: 14, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginBottom: 4 }}
                     >
-                      <CornerUpLeft className="w-3 h-3 text-muted-foreground" />
+                      <CornerUpLeft style={{ width: 13, height: 13, color: '#8899aa' }} />
                     </motion.button>
 
                     {/* Report Button */}
@@ -671,11 +685,12 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
                           e.stopPropagation();
                           setReportModal({ userId: msgUser.id, username: msgUser.username, messageId: message.id, messageText: message.text });
                         }}
-                        whileHover={{ scale: 1.1 }}
+                        whileHover={{ scale: 1.15 }}
                         whileTap={{ scale: 0.9 }}
-                        className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0 w-6 h-6 bg-secondary hover:bg-red-500/20 rounded-full flex items-center justify-center mb-1"
+                        className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                        style={{ width: 28, height: 28, borderRadius: 14, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginBottom: 4 }}
                       >
-                        <Flag className="w-3 h-3 text-muted-foreground hover:text-red-400" />
+                        <Flag style={{ width: 13, height: 13, color: '#8899aa' }} />
                       </motion.button>
                     )}
                   </div>
@@ -706,16 +721,6 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
                     );
                   })()}
 
-                  {/* Timestamp */}
-                  <span className={`text-[11px] mt-1 flex items-center gap-1 ${isCurrentUser ? 'justify-end' : 'justify-start'}`} style={{ color: '#6b7b8d' }}>
-                    {message.timestamp}
-                    {isCurrentUser && (
-                      <svg width="16" height="11" viewBox="0 0 16 11" fill="none" style={{ color: '#5bb8f6' }}>
-                        <path d="M11.5 1L5.5 8L3 5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M14.5 1L8.5 8L7.5 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    )}
-                  </span>
                 </div>
               </motion.div>
               </React.Fragment>
