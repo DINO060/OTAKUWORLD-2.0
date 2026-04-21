@@ -355,13 +355,13 @@ export default function ProfileCard({ isOpen, onClose, variant, user, onMessage,
             transition={{ type: 'spring', damping: 28, stiffness: 320 }}
             className="fixed z-[101]
               top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
-              w-[min(95vw,420px)]
-              max-h-[85vh]
+              w-[min(95vw,400px)]
               bg-[#1a1a2e]
               rounded-2xl
               shadow-2xl border border-white/10
               flex flex-col
               overflow-hidden"
+            style={{ maxHeight: 520 }}
           >
             {/* COVER IMAGE LAYER */}
             <div className="relative h-16 flex-shrink-0 overflow-hidden" style={{ background: 'linear-gradient(135deg, #6c5ce7, #a29bfe)' }}>
@@ -399,10 +399,10 @@ export default function ProfileCard({ isOpen, onClose, variant, user, onMessage,
             </div>
 
             {/* AVATAR */}
-            <div className="relative px-3.5 -mt-7 mb-1.5 flex-shrink-0">
-              <div className="relative w-14 h-14">
+            <div className="relative px-3.5 -mt-8 mb-2 flex-shrink-0">
+              <div className="relative w-16 h-16">
                 <div
-                  className="w-14 h-14 rounded-full flex items-center justify-center text-white text-base font-bold border-[3px] border-white shadow-md overflow-hidden"
+                  className="w-16 h-16 rounded-full flex items-center justify-center text-white text-lg font-bold border-[3px] border-white shadow-md overflow-hidden"
                   style={{ backgroundColor: (avatarImage || targetAvatarImage) ? undefined : user.avatarColor }}
                 >
                   {(avatarImage || (variant === 'user' && targetAvatarImage)) ? (
@@ -524,7 +524,7 @@ export default function ProfileCard({ isOpen, onClose, variant, user, onMessage,
                           }
                         }}
                         title={variant === 'owner' && isEditMode ? `Remove ${getSocialName(url)}` : getSocialName(url)}
-                        className={`relative w-8 h-8 ${getSocialBg(url)} rounded-full flex items-center justify-center transition-all group hover:opacity-80 overflow-hidden`}
+                        className={`relative w-11 h-11 ${getSocialBg(url)} rounded-xl flex items-center justify-center transition-all group hover:opacity-80 overflow-hidden`}
                       >
                         <SocialLinkIcon url={url} />
                         {variant === 'owner' && isEditMode && (
@@ -539,7 +539,7 @@ export default function ProfileCard({ isOpen, onClose, variant, user, onMessage,
                     {variant === 'owner' && isEditMode && (
                       <button
                         onClick={() => setIsAddingLink(true)}
-                        className="w-8 h-8 border-2 border-dashed border-white/25 hover:border-purple-400/60 rounded-full flex items-center justify-center transition-all text-white/30 hover:text-purple-400"
+                        className="w-11 h-11 border-2 border-dashed border-white/25 hover:border-purple-400/60 rounded-xl flex items-center justify-center transition-all text-white/30 hover:text-purple-400"
                       >
                         <span className="text-lg leading-none mb-0.5">+</span>
                       </button>
@@ -604,38 +604,34 @@ export default function ProfileCard({ isOpen, onClose, variant, user, onMessage,
             </div>
 
             {/* ACTION BUTTONS — fixed at bottom */}
-            <div className="px-3.5 pb-2.5 pt-2 border-t border-white/10 flex-shrink-0 bg-[#1a1a1a]">
+            <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,0.08)', flexShrink: 0, background: '#12122a' }}>
               {variant === 'owner' ? (
                 <>
                   {isEditMode ? (
-                    <div className="flex gap-1.5">
+                    <div style={{ display: 'flex', gap: 8 }}>
                       <button
                         onClick={handleCancel}
                         disabled={isSaving}
-                        className="flex-1 bg-[#252525] hover:bg-[#303030] text-gray-300 font-medium py-1.5 rounded-lg transition-all text-xs disabled:opacity-50"
+                        style={{ flex: 1, height: 44, borderRadius: 8, background: '#252540', color: '#ccc', fontWeight: 600, fontSize: 14, border: 'none', cursor: 'pointer', opacity: isSaving ? 0.5 : 1 }}
                       >
-                        Cancel
+                        Annuler
                       </button>
                       <button
                         onClick={handleSaveChanges}
                         disabled={isSaving}
-                        className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-medium py-1.5 rounded-lg transition-all flex items-center justify-center gap-1 text-xs disabled:opacity-50"
+                        style={{ flex: 1, height: 44, borderRadius: 8, background: '#6c5ce7', color: '#fff', fontWeight: 600, fontSize: 14, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: isSaving ? 0.5 : 1 }}
                       >
-                        {isSaving ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <Check className="w-3 h-3" />
-                        )}
-                        {isSaving ? 'Saving...' : 'Save'}
+                        {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                        {isSaving ? 'Sauvegarde...' : 'Sauvegarder'}
                       </button>
                     </div>
                   ) : (
                     <button
                       onClick={() => setIsEditMode(true)}
-                      className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-1.5 rounded-lg transition-all flex items-center justify-center gap-1 text-xs"
+                      style={{ width: '100%', height: 44, borderRadius: 8, background: '#6c5ce7', color: '#fff', fontWeight: 600, fontSize: 14, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
                     >
-                      <Edit2 className="w-3 h-3" />
-                      Edit Profile
+                      <Edit2 className="w-4 h-4" />
+                      Modifier le profil
                     </button>
                   )}
                 </>
@@ -697,34 +693,30 @@ export default function ProfileCard({ isOpen, onClose, variant, user, onMessage,
                   </AnimatePresence>
 
                   {/* Message + Report buttons */}
-                  <div className="flex gap-1.5">
+                  <div style={{ display: 'flex', gap: 8 }}>
                     {targetAllowsDms ? (
                       <button
                         onClick={onMessage}
-                        className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-medium py-1.5 rounded-lg transition-all flex items-center justify-center gap-1 text-xs"
+                        style={{ flex: 1, height: 44, borderRadius: 8, background: '#6c5ce7', color: '#fff', fontWeight: 600, fontSize: 14, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
                       >
-                        <MessageCircle className="w-3 h-3" />
+                        <MessageCircle className="w-4 h-4" />
                         Message
                       </button>
                     ) : (
                       <div
                         title="Cet utilisateur n'accepte pas les messages privés"
-                        className="flex-1 bg-secondary text-muted-foreground font-medium py-1.5 rounded-lg flex items-center justify-center gap-1 text-xs cursor-not-allowed opacity-60"
+                        style={{ flex: 1, height: 44, borderRadius: 8, background: '#1e1e30', color: '#666', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                       >
-                        <MessageSquareOff className="w-3 h-3" />
+                        <MessageSquareOff className="w-4 h-4" />
                         DMs désactivés
                       </div>
                     )}
                     <button
                       onClick={() => setIsReporting(!isReporting)}
                       title="Signaler ce profil"
-                      className={`px-3 py-1.5 rounded-lg transition-all flex items-center justify-center border text-xs ${
-                        isReporting
-                          ? 'bg-red-500/20 border-red-500/50 text-red-400'
-                          : 'bg-[#252525] border-white/10 text-gray-400 hover:border-red-500/40 hover:text-red-400'
-                      }`}
+                      style={{ width: 44, height: 44, borderRadius: 8, border: `1px solid ${isReporting ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.1)'}`, background: isReporting ? 'rgba(239,68,68,0.15)' : '#252540', color: isReporting ? '#f87171' : '#888', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
                     >
-                      <Flag className="w-3 h-3" />
+                      <Flag className="w-4 h-4" />
                     </button>
                   </div>
                 </>

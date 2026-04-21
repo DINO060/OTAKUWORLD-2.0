@@ -1195,17 +1195,17 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
       )}
 
       {/* Bottom Input Area */}
-      <div className="flex-shrink-0 bg-card border-t border-border flex items-center px-2 sm:px-3 py-2 gap-1 sm:gap-2 z-30">
+      <div className="flex-shrink-0 border-t flex items-center px-2 gap-1 z-30" style={{ background: '#0e1621', borderColor: 'rgba(255,255,255,0.06)', minHeight: 56 }}>
         <button
           onClick={() => { setIsEmojiPickerOpen(!isEmojiPickerOpen); setIsGifPickerOpen(false); }}
-          className={`p-2 rounded-full transition-colors flex-shrink-0 ${isEmojiPickerOpen ? 'bg-purple-600 text-white' : 'hover:bg-secondary text-muted-foreground'}`}
+          style={{ width: 44, height: 44, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: isEmojiPickerOpen ? '#6c5ce7' : 'transparent', transition: 'background 0.15s' }}
         >
-          <Smile className="w-5 h-5" />
+          <Smile style={{ width: 20, height: 20, color: isEmojiPickerOpen ? '#fff' : '#8899aa' }} />
         </button>
 
         <button
           onClick={() => { setIsGifPickerOpen(!isGifPickerOpen); setIsEmojiPickerOpen(false); }}
-          className={`px-2 py-1.5 rounded-full transition-colors text-xs font-bold flex-shrink-0 ${isGifPickerOpen ? 'bg-purple-600 text-white' : 'hover:bg-secondary text-muted-foreground'}`}
+          style={{ height: 44, paddingLeft: 10, paddingRight: 10, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: isGifPickerOpen ? '#6c5ce7' : 'transparent', fontSize: 12, fontWeight: 700, color: isGifPickerOpen ? '#fff' : '#8899aa', transition: 'background 0.15s' }}
         >
           GIF
         </button>
@@ -1213,11 +1213,11 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
         <button
           onClick={() => { unreadMentionCount > 0 ? setShowMentionPanel(true) : setIsHashtagPanelOpen(true); }}
           onContextMenu={(e) => { e.preventDefault(); setIsHashtagPanelOpen(true); }}
-          className="p-2 hover:bg-secondary rounded-full transition-colors flex-shrink-0 relative"
+          style={{ width: 44, height: 44, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: 'transparent', position: 'relative' }}
         >
-          <Hash className="w-5 h-5 text-muted-foreground" />
+          <Hash style={{ width: 20, height: 20, color: '#8899aa' }} />
           {unreadMentionCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[16px] h-4 flex items-center justify-center rounded-full text-white text-[9px] font-bold px-0.5 animate-pulse" style={{ background: '#ef4444' }}>
+            <span style={{ position: 'absolute', top: 6, right: 6, minWidth: 16, height: 16, background: '#ef4444', borderRadius: 8, fontSize: 9, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 2px' }}>
               {unreadMentionCount}
             </span>
           )}
@@ -1227,9 +1227,9 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
           <input
             ref={inputRef}
             type="text"
-            placeholder="Message... (@mention)"
+            placeholder="Message..."
             maxLength={500}
-            className="w-full bg-secondary border border-border rounded-full px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+            style={{ width: '100%', background: '#1a2433', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, padding: '10px 16px', fontSize: 14, color: '#e8e8ed', outline: 'none' }}
             value={inputText}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
@@ -1244,9 +1244,9 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
 
         <button
           onClick={handleSendMessage}
-          className="flex-shrink-0 bg-gradient-to-b from-[#4dc7d9] to-[#66a6ff] hover:from-[#5bd9ec] hover:to-[#97c3ff] text-white p-2.5 rounded-full shadow-md hover:shadow-lg transition-all flex items-center justify-center"
+          style={{ width: 44, height: 44, borderRadius: 22, flexShrink: 0, background: 'linear-gradient(135deg, #4dc7d9, #66a6ff)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(77,199,217,0.4)' }}
         >
-          <Send className="w-5 h-5 text-white" />
+          <Send style={{ width: 18, height: 18, color: '#fff' }} />
         </button>
       </div>
 
