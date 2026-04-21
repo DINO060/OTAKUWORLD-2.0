@@ -45,8 +45,8 @@ export default function EmojiPicker({ isOpen, onClose, onEmojiSelect }: EmojiPic
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 20, scale: 0.95 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="fixed bottom-0 left-0 right-0 sm:bottom-[60px] sm:left-4 sm:right-auto z-50 rounded-t-2xl sm:rounded-2xl overflow-hidden"
-          style={{ maxHeight: '55dvh' }}
+          className="fixed bottom-[60px] left-0 right-0 sm:left-4 sm:right-auto z-50 rounded-t-2xl sm:rounded-2xl overflow-hidden"
+          style={{ maxHeight: '50dvh' }}
         >
           <Picker
             data={data}

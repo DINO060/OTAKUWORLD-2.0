@@ -381,26 +381,15 @@ export default function PrivateChat({ onBack, selectedUserId }: PrivateChatProps
             <Smile className={`w-5 h-5 ${isEmojiPickerOpen ? 'text-white' : 'text-muted-foreground'}`} strokeWidth={2} />
           </button>
 
-          {/* GIF */}
+          {/* GIF / Sticker */}
           <button
             onClick={(e) => { e.stopPropagation(); setIsGifPickerOpen(o => !o); setIsEmojiPickerOpen(false); setIsStickerPickerOpen(false); }}
             disabled={!isLoggedIn}
-            className={`px-2 h-9 flex items-center justify-center rounded-xl transition-all flex-shrink-0 text-xs font-bold ${
+            className={`px-2.5 h-9 flex items-center justify-center rounded-xl transition-all flex-shrink-0 text-xs font-bold ${
               isLoggedIn ? (isGifPickerOpen ? 'bg-purple-600 text-white' : 'bg-secondary hover:bg-accent text-muted-foreground') : 'bg-secondary opacity-50 cursor-not-allowed text-muted-foreground'
             }`}
           >
             GIF
-          </button>
-
-          {/* Sticker */}
-          <button
-            onClick={(e) => { e.stopPropagation(); setIsStickerPickerOpen(o => !o); setIsEmojiPickerOpen(false); setIsGifPickerOpen(false); }}
-            disabled={!isLoggedIn}
-            className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all flex-shrink-0 ${
-              isLoggedIn ? (isStickerPickerOpen ? 'bg-purple-600' : 'bg-secondary hover:bg-accent') : 'bg-secondary opacity-50 cursor-not-allowed'
-            }`}
-          >
-            <Sparkles className={`w-5 h-5 ${isStickerPickerOpen ? 'text-white' : 'text-muted-foreground'}`} strokeWidth={2} />
           </button>
 
           {/* Text Input */}

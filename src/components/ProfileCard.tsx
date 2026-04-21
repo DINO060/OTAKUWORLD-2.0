@@ -355,7 +355,7 @@ export default function ProfileCard({ isOpen, onClose, variant, user, onMessage,
             transition={{ type: 'spring', damping: 28, stiffness: 320 }}
             className="fixed z-[101]
               top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
-              w-[min(92vw,360px)]
+              w-[min(95vw,420px)]
               max-h-[85vh]
               bg-[#1a1a2e]
               rounded-2xl
