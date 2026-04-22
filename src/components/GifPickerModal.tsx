@@ -148,26 +148,18 @@ export default function GifPickerModal({ isOpen, onClose, onSelect }: GifPickerM
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
+          {/* Modal panel — slides up from bottom like keyboard */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
-            onClick={onClose}
-          />
-
-          {/* Modal panel */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96, y: 16 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 16 }}
-            transition={{ type: 'spring', damping: 26, stiffness: 320 }}
-            className="fixed inset-x-0 bottom-[60px] sm:bottom-auto sm:top-[5%] sm:inset-x-4 z-50 mx-auto max-w-[480px] flex flex-col"
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'tween', duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="fixed inset-x-0 z-50 flex flex-col sm:bottom-auto sm:top-[5%] sm:inset-x-4 sm:mx-auto sm:max-w-[480px]"
+            style={{ bottom: 56 }}
             onClick={e => e.stopPropagation()}
           >
-            <div className="bg-card rounded-t-2xl sm:rounded-2xl border border-border shadow-2xl flex flex-col overflow-hidden max-h-[60dvh] sm:max-h-[85vh]">
+            <div className="rounded-t-2xl sm:rounded-2xl border border-border shadow-2xl flex flex-col overflow-hidden sm:max-h-[85vh]"
+              style={{ background: '#13131f', height: 320 }}>
 
               {/* ── Search bar ── */}
               <div className="flex items-center gap-2 px-3 pt-3 pb-2 flex-shrink-0">

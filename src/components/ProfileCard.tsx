@@ -353,18 +353,11 @@ export default function ProfileCard({ isOpen, onClose, variant, user, onMessage,
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-            className="fixed z-[101]
-              top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
-              w-[min(95vw,400px)]
-              bg-[#1a1a2e]
-              rounded-2xl
-              shadow-2xl border border-white/10
-              flex flex-col
-              overflow-hidden"
-            style={{ maxHeight: 560 }}
+            className="fixed z-[101] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col overflow-hidden"
+            style={{ width: 'min(92vw, 300px)', background: '#1a1a2e', borderRadius: 16, boxShadow: '0 24px 60px rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.08)' }}
           >
             {/* COVER IMAGE LAYER */}
-            <div className="relative h-28 flex-shrink-0 overflow-hidden" style={{ background: 'linear-gradient(135deg, #6c5ce7, #a29bfe)' }}>
+            <div className="relative flex-shrink-0 overflow-hidden" style={{ height: 70, background: 'linear-gradient(135deg, #6c5ce7, #a29bfe)' }}>
               {coverImage ? (
                 <img src={coverImage} className="w-full h-full object-cover" alt="Cover" />
               ) : null}
@@ -398,12 +391,11 @@ export default function ProfileCard({ isOpen, onClose, variant, user, onMessage,
               </button>
             </div>
 
-            {/* AVATAR */}
-            <div className="relative px-3.5 -mt-10 mb-2 flex-shrink-0">
-              <div className="relative w-16 h-16">
+            {/* AVATAR — overlaps header, left-aligned */}
+            <div className="relative flex-shrink-0" style={{ marginTop: -36, paddingLeft: 16, marginBottom: 4 }}>
+              <div style={{ position: 'relative', width: 72, height: 72 }}>
                 <div
-                  className="w-16 h-16 rounded-full flex items-center justify-center text-white text-lg font-bold border-[3px] border-white shadow-md overflow-hidden"
-                  style={{ backgroundColor: (avatarImage || targetAvatarImage) ? undefined : user.avatarColor }}
+                  style={{ width: 72, height: 72, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 22, fontWeight: 700, border: '3px solid #1a1a2e', boxShadow: '0 2px 12px rgba(0,0,0,0.4)', overflow: 'hidden', backgroundColor: (avatarImage || targetAvatarImage) ? undefined : user.avatarColor }}
                 >
                   {(avatarImage || (variant === 'user' && targetAvatarImage)) ? (
                     <img src={avatarImage || targetAvatarImage!} className="w-full h-full object-cover" alt="Avatar" />
@@ -434,72 +426,68 @@ export default function ProfileCard({ isOpen, onClose, variant, user, onMessage,
             </div>
 
             {/* SCROLLABLE CONTENT */}
-            <div className="px-3.5 pb-2.5 overflow-y-auto flex-1 custom-scrollbar">
-              {/* Display Name */}
-              <div className="mb-1">
+            <div style={{ padding: '0 16px 16px', overflowY: 'auto', flex: 1 }}>
+              {/* Display Name + status dot */}
+              <div style={{ marginBottom: 2 }}>
                 {isEditMode ? (
                   <input
                     type="text"
                     value={editedProfile.displayName}
                     onChange={(e) => setEditedProfile({ ...editedProfile, displayName: e.target.value })}
-                    className="w-full text-white text-[15px] font-semibold bg-[#0f0f0f] border border-white/10 rounded-md px-2 py-1 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                    className="w-full bg-[#0f0f0f] border border-white/10 rounded-md px-2 py-1 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                    style={{ color: '#fff', fontSize: 16, fontWeight: 700 }}
                     placeholder="Display name"
                   />
                 ) : (
-                  <div className="flex items-center gap-1.5">
-                    <h3 className="text-white text-[15px] font-semibold">
-                      {variant === 'owner' && profile ? profile.username : user.displayName}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <h3 style={{ color: '#fff', fontSize: 16, fontWeight: 700, margin: 0 }}>
+                      {(() => {
+                        const raw = variant === 'owner' && profile ? profile.username : (user.displayName || user.username);
+                        return raw?.startsWith('user_') ? 'Anonyme' : raw;
+                      })()}
                     </h3>
                     {(variant === 'owner' ? isAuthenticated : user.isActive) && (
-                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', flexShrink: 0 }} />
                     )}
                   </div>
                 )}
               </div>
 
-              {/* @handle — falls back to @username if no handle set */}
+              {/* @handle */}
               {!isEditMode && (() => {
                 const handle = variant === 'owner'
                   ? (profile?.handle || profile?.username)
                   : (targetHandle || user.username);
                 return handle ? (
-                  <p className="text-[11px] text-purple-400/80 font-medium mb-1">@{handle}</p>
+                  <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>@{handle}</p>
                 ) : null;
               })()}
 
-              {/* Online status */}
-              {!isEditMode && (
-                <div className="mb-2">
-                  <p className="text-xs text-gray-500">
-                    {user.isActive ? 'Online' : 'Offline'}
-                  </p>
-                </div>
-              )}
-
               {/* Badge */}
               {!isEditMode && (
-                <div className="inline-flex items-center gap-1 bg-gradient-to-r from-orange-500/20 to-orange-400/10 px-2 py-0.5 rounded-full mb-2.5">
-                  <div className="w-3 h-3 bg-orange-400 rounded-full flex items-center justify-center">
-                    <span className="text-white text-[7px] font-bold">★</span>
-                  </div>
-                  <span className="text-orange-400 text-[10px] font-semibold">New Cadet</span>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(255,165,0,0.15)', borderRadius: 20, padding: '2px 10px', marginBottom: 10 }}>
+                  <span style={{ fontSize: 11, color: '#FFA500' }}>★</span>
+                  <span style={{ fontSize: 12, color: '#FFA500', fontWeight: 600 }}>New Cadet</span>
                 </div>
               )}
 
               {/* Bio */}
-              <div className="mb-2.5">
-                {isEditMode ? (
-                  <textarea
-                    value={editedProfile.bio}
-                    onChange={(e) => setEditedProfile({ ...editedProfile, bio: e.target.value })}
-                    placeholder="Tell us about yourself..."
-                    className="w-full text-xs text-gray-300 bg-[#0f0f0f] border border-white/10 rounded-md px-2 py-1.5 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 resize-none min-h-[50px]"
-                    rows={2}
-                  />
-                ) : (
-                  <p className="text-xs text-gray-400 leading-relaxed">{editedProfile.bio}</p>
-                )}
-              </div>
+              {(isEditMode || editedProfile.bio) && (
+                <div style={{ marginBottom: 10 }}>
+                  {isEditMode ? (
+                    <textarea
+                      value={editedProfile.bio}
+                      onChange={(e) => setEditedProfile({ ...editedProfile, bio: e.target.value })}
+                      placeholder="Tell us about yourself..."
+                      className="w-full bg-[#0f0f0f] border border-white/10 rounded-md px-2 py-1.5 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 resize-none"
+                      style={{ color: '#ccc', fontSize: 12 }}
+                      rows={2}
+                    />
+                  ) : (
+                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>{editedProfile.bio}</p>
+                  )}
+                </div>
+              )}
 
               {/* ── SOCIAL LINKS ── */}
               {(socialLinks.length > 0 || (variant === 'owner' && isEditMode)) && (

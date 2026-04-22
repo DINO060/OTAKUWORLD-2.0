@@ -61,6 +61,8 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
   const [mentionNotifs, setMentionNotifs] = useState<Set<string>>(new Set());
   const [readMentions, setReadMentions] = useState<Set<string>>(new Set());
   const [showMentionPanel, setShowMentionPanel] = useState(false);
+  const [activeMessageId, setActiveMessageId] = useState<string | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -209,6 +211,23 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
   const handleCloseMenus = () => {
     setReactionPickerOpen(null);
     setMessageMenuOpen(null);
+    setActiveMessageId(null);
+    setIsEmojiPickerOpen(false);
+    setIsGifPickerOpen(false);
+  };
+
+  const handleBubbleTouchStart = (messageId: string) => {
+    longPressTimer.current = setTimeout(() => {
+      setActiveMessageId(messageId);
+      longPressTimer.current = null;
+    }, 400);
+  };
+
+  const handleBubbleTouchEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -445,7 +464,7 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
 
       <main className="flex-1 overflow-hidden flex" onClick={handleCloseMenus}>
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto px-2 sm:px-4 pt-2 sm:pt-4" style={{ paddingBottom: (isEmojiPickerOpen || isGifPickerOpen) ? 'calc(50dvh + 8px)' : '8px', transition: 'padding-bottom 0.2s' }}>
+      <div className="flex-1 overflow-y-auto px-2 sm:px-4 pt-2 sm:pt-4" style={{ paddingBottom: (isEmojiPickerOpen || isGifPickerOpen) ? 328 : 8, transition: 'padding-bottom 0.2s' }}>
         {/* Active Filter Badge */}
         <AnimatePresence>
           {selectedHashtag && (
@@ -485,11 +504,15 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
         </AnimatePresence>
 
         {/* Messages */}
-        <div className="max-w-xl mx-auto space-y-2">
-          {filteredMessages.map((message) => {
+        <div className="max-w-xl mx-auto">
+          {filteredMessages.map((message, msgIndex) => {
             const msgUser = getUserById(message.userId);
             if (!msgUser) return null;
             const isCurrentUser = msgUser.isCurrentUser;
+            const prevMsg = filteredMessages[msgIndex - 1];
+            const nextMsg = filteredMessages[msgIndex + 1];
+            const isFirstInGroup = !prevMsg || prevMsg.userId !== message.userId;
+            const isLastInGroup = !nextMsg || nextMsg.userId !== message.userId;
 
             return (
               <React.Fragment key={message.id}>
@@ -498,16 +521,25 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
+                style={{ marginTop: msgIndex === 0 ? 0 : isFirstInGroup ? 8 : 2 }}
                 className={`flex gap-3 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'} transition-all duration-300`}
+                onMouseEnter={() => setActiveMessageId(message.id)}
+                onMouseLeave={() => setActiveMessageId(null)}
+                onTouchStart={() => handleBubbleTouchStart(message.id)}
+                onTouchEnd={handleBubbleTouchEnd}
               >
-                {/* Avatar */}
-                <div
-                  onClick={() => setSelectedUserProfile(msgUser.id)}
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-blue-400 transition-all"
-                  style={{ backgroundColor: msgUser.avatarColor }}
-                >
-                  {getInitials(msgUser.username)}
-                </div>
+                {/* Avatar — shown only on last message of consecutive group */}
+                {isLastInGroup ? (
+                  <div
+                    onClick={() => setSelectedUserProfile(msgUser.id)}
+                    className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-blue-400 transition-all"
+                    style={{ backgroundColor: msgUser.avatarColor }}
+                  >
+                    {getInitials(msgUser.username)}
+                  </div>
+                ) : (
+                  <div className="w-9 flex-shrink-0" />
+                )}
 
                 {/* Message Bubble */}
                 <div className={`min-w-0 max-w-[85%] ${isCurrentUser ? 'items-end' : 'items-start'} flex flex-col`}>
@@ -532,11 +564,11 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
                         }
 
                         return (
-                          <div className={`rounded-2xl overflow-hidden ${isCurrentUser ? 'rounded-br-sm' : 'rounded-bl-sm'}`} style={{ maxWidth: '200px' }}>
+                          <div style={{ borderRadius: 12, overflow: 'hidden', maxWidth: '65%' }}>
                             {gifData.mp4 ? (
-                              <video src={gifData.mp4} autoPlay loop muted playsInline className="w-full rounded-2xl block" />
+                              <video src={gifData.mp4} autoPlay loop muted playsInline style={{ width: '100%', display: 'block', borderRadius: 12 }} />
                             ) : (
-                              <img src={gifData.gif} alt={gifData.title} className="w-full max-h-[180px] object-cover rounded-2xl" loading="lazy" />
+                              <img src={gifData.gif} alt={gifData.title} style={{ width: '100%', maxHeight: 180, objectFit: 'cover', display: 'block', borderRadius: 12 }} loading="lazy" />
                             )}
                           </div>
                         );
@@ -549,9 +581,11 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
                         className="relative px-3 pt-2 pb-5 w-full overflow-hidden"
                         style={{ backgroundColor: isCurrentUser ? '#2b5278' : '#212d3b', borderRadius: isCurrentUser ? '12px 12px 2px 12px' : '12px 12px 12px 2px' }}
                       >
-                        <p className="text-xs font-bold mb-0.5" style={{ color: isCurrentUser ? '#7eb8e6' : msgUser.avatarColor || '#6ab3f3' }}>
-                          {getDisplayName(msgUser.username)}
-                        </p>
+                        {isFirstInGroup && (
+                          <p className="text-xs font-bold mb-0.5" style={{ color: isCurrentUser ? '#7eb8e6' : msgUser.avatarColor || '#6ab3f3' }}>
+                            {getDisplayName(msgUser.username)}
+                          </p>
+                        )}
 
                         {message.replyTo && (
                           <div
@@ -567,8 +601,9 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
                           </div>
                         )}
 
-                        <p className="text-sm leading-relaxed break-all text-white" style={{ wordBreak: 'break-all', overflowWrap: 'anywhere', paddingRight: isCurrentUser ? 20 : 0 }}>
+                        <p className="text-sm leading-relaxed break-all text-white" style={{ wordBreak: 'break-all', overflowWrap: 'anywhere' }}>
                           {highlightHashtags(message.text)}
+                          <span style={{ display: 'inline-block', width: isCurrentUser ? 72 : 52 }}> </span>
                         </p>
 
                         {/* Timestamp inside bubble — Telegram style */}
@@ -657,49 +692,59 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
                       </AnimatePresence>
                     </div>
 
-                    {/* Action pill — Telegram style */}
-                    <div
-                      className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0 self-end"
-                      style={{ marginBottom: 6 }}
-                    >
-                      <div style={{ background: 'rgba(20,24,36,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 22, padding: '3px 4px', display: 'flex', gap: 2, boxShadow: '0 2px 12px rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }}>
-                        <motion.button
-                          onClick={(e) => { e.stopPropagation(); setReactionPickerOpen(reactionPickerOpen === message.id ? null : message.id); }}
-                          whileHover={{ scale: 1.2 }}
-                          whileTap={{ scale: 0.85 }}
-                          style={{ width: 30, height: 30, borderRadius: 15, background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                    {/* Action pill inside bubble container — floats ABOVE bubble on hover/long-press */}
+                    <AnimatePresence>
+                      {activeMessageId === message.id && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 4 }}
+                          transition={{ duration: 0.15 }}
+                          style={{ position: 'absolute', bottom: '100%', marginBottom: 6, zIndex: 20, [isCurrentUser ? 'right' : 'left']: 0 }}
+                          onClick={e => e.stopPropagation()}
                         >
-                          <Heart style={{ width: 14, height: 14, color: '#8899aa' }} />
-                        </motion.button>
-                        <motion.button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setReplyTo({ messageId: message.id, username: msgUser.username, text: message.text });
-                            setEditingMessageId(null);
-                            setEditText('');
-                            setTimeout(() => inputRef.current?.focus(), 50);
-                          }}
-                          whileHover={{ scale: 1.2 }}
-                          whileTap={{ scale: 0.85 }}
-                          style={{ width: 30, height: 30, borderRadius: 15, background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                        >
-                          <CornerUpLeft style={{ width: 14, height: 14, color: '#8899aa' }} />
-                        </motion.button>
-                        {!isCurrentUser && (
-                          <motion.button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setReportModal({ userId: msgUser.id, username: msgUser.username, messageId: message.id, messageText: message.text });
-                            }}
-                            whileHover={{ scale: 1.2 }}
-                            whileTap={{ scale: 0.85 }}
-                            style={{ width: 30, height: 30, borderRadius: 15, background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                          >
-                            <Flag style={{ width: 14, height: 14, color: '#8899aa' }} />
-                          </motion.button>
-                        )}
-                      </div>
-                    </div>
+                          <div style={{ background: 'rgba(16,20,30,0.97)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 22, padding: '3px 5px', display: 'flex', gap: 2, boxShadow: '0 4px 16px rgba(0,0,0,0.7)', backdropFilter: 'blur(12px)' }}>
+                            <motion.button
+                              onClick={(e) => { e.stopPropagation(); setReactionPickerOpen(reactionPickerOpen === message.id ? null : message.id); }}
+                              whileHover={{ scale: 1.2 }}
+                              whileTap={{ scale: 0.85 }}
+                              style={{ width: 34, height: 34, borderRadius: 17, background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                            >
+                              <Heart style={{ width: 15, height: 15, color: '#aab4c0' }} />
+                            </motion.button>
+                            <motion.button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setReplyTo({ messageId: message.id, username: msgUser.username, text: message.text });
+                                setEditingMessageId(null);
+                                setEditText('');
+                                setActiveMessageId(null);
+                                setTimeout(() => inputRef.current?.focus(), 50);
+                              }}
+                              whileHover={{ scale: 1.2 }}
+                              whileTap={{ scale: 0.85 }}
+                              style={{ width: 34, height: 34, borderRadius: 17, background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                            >
+                              <CornerUpLeft style={{ width: 15, height: 15, color: '#aab4c0' }} />
+                            </motion.button>
+                            {!isCurrentUser && (
+                              <motion.button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setReportModal({ userId: msgUser.id, username: msgUser.username, messageId: message.id, messageText: message.text });
+                                  setActiveMessageId(null);
+                                }}
+                                whileHover={{ scale: 1.2 }}
+                                whileTap={{ scale: 0.85 }}
+                                style={{ width: 34, height: 34, borderRadius: 17, background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                              >
+                                <Flag style={{ width: 15, height: 15, color: '#aab4c0' }} />
+                              </motion.button>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
 
                   {/* Reactions Display */}
@@ -1281,7 +1326,7 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
       <button
         onClick={() => { unreadMentionCount > 0 ? setShowMentionPanel(true) : setIsHashtagPanelOpen(true); }}
         onContextMenu={(e) => { e.preventDefault(); setIsHashtagPanelOpen(true); }}
-        style={{ position: 'fixed', bottom: 82, right: 14, zIndex: 9999 }}
+        style={{ position: 'fixed', bottom: 80, right: 16, zIndex: 40 }}
         className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-lg hover:shadow-2xl transition-shadow"
       >
         <Hash className="w-6 h-6 sm:w-8 sm:h-8 text-white" strokeWidth={2.5} />
