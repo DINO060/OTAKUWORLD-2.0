@@ -130,7 +130,10 @@ export default function Inbox({ onBack, onSelectConversation }: InboxProps) {
                     <span className="text-xs text-muted-foreground ml-2 flex-shrink-0">{conv.lastMessageAt}</span>
                   </div>
                   <p className="text-muted-foreground text-xs sm:text-sm truncate">
-                    {conv.lastMessage}
+                    {conv.lastMessage?.startsWith('{')
+                      ? (() => { try { const p = JSON.parse(conv.lastMessage!); return (p.gif || p.mp4) ? '🎬 GIF' : conv.lastMessage; } catch { return conv.lastMessage; } })()
+                      : conv.lastMessage?.startsWith('::sticker::') ? '🎨 Sticker'
+                      : conv.lastMessage}
                   </p>
                 </div>
 

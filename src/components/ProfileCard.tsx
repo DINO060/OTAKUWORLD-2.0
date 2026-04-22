@@ -361,10 +361,10 @@ export default function ProfileCard({ isOpen, onClose, variant, user, onMessage,
               shadow-2xl border border-white/10
               flex flex-col
               overflow-hidden"
-            style={{ maxHeight: 520 }}
+            style={{ maxHeight: 560 }}
           >
             {/* COVER IMAGE LAYER */}
-            <div className="relative h-16 flex-shrink-0 overflow-hidden" style={{ background: 'linear-gradient(135deg, #6c5ce7, #a29bfe)' }}>
+            <div className="relative h-28 flex-shrink-0 overflow-hidden" style={{ background: 'linear-gradient(135deg, #6c5ce7, #a29bfe)' }}>
               {coverImage ? (
                 <img src={coverImage} className="w-full h-full object-cover" alt="Cover" />
               ) : null}
@@ -399,7 +399,7 @@ export default function ProfileCard({ isOpen, onClose, variant, user, onMessage,
             </div>
 
             {/* AVATAR */}
-            <div className="relative px-3.5 -mt-8 mb-2 flex-shrink-0">
+            <div className="relative px-3.5 -mt-10 mb-2 flex-shrink-0">
               <div className="relative w-16 h-16">
                 <div
                   className="w-16 h-16 rounded-full flex items-center justify-center text-white text-lg font-bold border-[3px] border-white shadow-md overflow-hidden"

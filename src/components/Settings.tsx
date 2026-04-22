@@ -500,15 +500,15 @@ export default function Settings({ onBack, onAdminClick }: SettingsProps) {
 
   const S = {
     bg: '#0c0c14',
-    card: '#111119',
-    border: 'rgba(255,255,255,0.06)',
+    card: '#13131f',
+    border: 'rgba(255,255,255,0.08)',
     text: '#e8e8ed',
-    muted: '#8888a0',
+    muted: '#8899aa',
     purple: '#6c5ce7',
   };
 
   const Card = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
-    <div className={`rounded-2xl overflow-hidden mx-4 ${className}`} style={{ background: S.card, border: `1px solid ${S.border}` }}>
+    <div className={`overflow-hidden ${className}`} style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 14, margin: '0 12px' }}>
       {children}
     </div>
   );
@@ -519,7 +519,8 @@ export default function Settings({ onBack, onAdminClick }: SettingsProps) {
   }) => (
     <button
       onClick={onClick}
-      className={`flex items-center gap-3 w-full px-4 py-3.5 transition-colors text-left ${onClick ? 'hover:bg-white/5 active:bg-white/10' : 'cursor-default'}`}
+      className={`flex items-center gap-3 w-full transition-colors text-left ${onClick ? 'hover:bg-white/5 active:bg-white/10' : 'cursor-default'}`}
+      style={{ padding: '13px 16px' }}
     >
       <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: iconBg }}>
         {icon}
@@ -532,10 +533,10 @@ export default function Settings({ onBack, onAdminClick }: SettingsProps) {
     </button>
   );
 
-  const Divider = () => <div style={{ height: '1px', background: S.border, margin: '0 16px' }} />;
+  const Divider = () => <div style={{ height: '1px', background: S.border }} />;
 
   const Label = ({ text }: { text: string }) => (
-    <p className="px-4 pb-1.5 pt-5 text-xs font-semibold uppercase tracking-wider" style={{ color: S.muted }}>{text}</p>
+    <p style={{ padding: '20px 16px 6px', fontSize: 11, fontWeight: 700, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{text}</p>
   );
 
   return (
@@ -562,7 +563,7 @@ export default function Settings({ onBack, onAdminClick }: SettingsProps) {
             <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
 
             {/* Profile Card */}
-            <div className="mx-4 rounded-2xl overflow-hidden" style={{ background: S.card, border: `1px solid ${S.border}` }}>
+            <div style={{ margin: '0 12px', borderRadius: 14, overflow: 'hidden', background: S.card, border: `1px solid ${S.border}` }}>
               {/* Banner */}
               <div className="h-20 relative" style={{ background: 'linear-gradient(135deg, #6c5ce7, #a29bfe)' }} />
               {/* Avatar + info */}
@@ -673,7 +674,7 @@ export default function Settings({ onBack, onAdminClick }: SettingsProps) {
               </AnimatePresence>
 
               <Divider />
-              <div className="flex items-center gap-3 px-4 py-3.5">
+              <div className="flex items-center gap-3" style={{ padding: '13px 16px' }}>
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#f39c12' }}>
                   <KeyRound size={16} className="text-white" />
                 </div>
@@ -692,7 +693,7 @@ export default function Settings({ onBack, onAdminClick }: SettingsProps) {
             {/* Privacy */}
             <Label text="Confidentialité" />
             <Card>
-              <div className="flex items-center gap-3 px-4 py-3.5">
+              <div className="flex items-center gap-3" style={{ padding: '13px 16px' }}>
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#27ae60' }}>
                   <MessageCircle size={16} className="text-white" />
                 </div>
@@ -721,7 +722,7 @@ export default function Settings({ onBack, onAdminClick }: SettingsProps) {
         {/* Appearance */}
         <Label text="Apparence" />
         <Card>
-          <div className="flex items-center gap-3 px-4 py-3.5">
+          <div className="flex items-center gap-3" style={{ padding: '13px 16px' }}>
             <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#8e44ad' }}>
               <Moon size={16} className="text-white" />
             </div>
@@ -742,7 +743,7 @@ export default function Settings({ onBack, onAdminClick }: SettingsProps) {
         {/* Content */}
         <Label text="Contenu" />
         <Card>
-          <div className="flex items-center gap-3 px-4 py-3.5 flex-wrap gap-y-2">
+          <div className="flex items-center gap-3 flex-wrap gap-y-2" style={{ padding: '13px 16px' }}>
             <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#e67e22' }}>
               <EyeOff size={16} className="text-white" />
             </div>

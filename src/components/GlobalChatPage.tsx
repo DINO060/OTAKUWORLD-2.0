@@ -112,10 +112,17 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
   const currentMediaAd = mediaAds.length > 0 ? mediaAds[currentMediaAdIndex % mediaAds.length] : null;
   const currentMediaAdYoutubeId = currentMediaAd?.media_url?.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/)?.[1];
 
-  // Auto-scroll
+  // Auto-scroll on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [contextFilteredMessages]);
+
+  // Scroll to bottom when picker opens so messages stay visible above it
+  useEffect(() => {
+    if (isEmojiPickerOpen || isGifPickerOpen) {
+      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+    }
+  }, [isEmojiPickerOpen, isGifPickerOpen]);
 
   // Detect @mentions
   useEffect(() => {
@@ -438,7 +445,7 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
 
       <main className="flex-1 overflow-hidden flex" onClick={handleCloseMenus}>
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto px-2 sm:px-4 pt-2 sm:pt-4 pb-0">
+      <div className="flex-1 overflow-y-auto px-2 sm:px-4 pt-2 sm:pt-4" style={{ paddingBottom: (isEmojiPickerOpen || isGifPickerOpen) ? 'calc(50dvh + 8px)' : '8px', transition: 'padding-bottom 0.2s' }}>
         {/* Active Filter Badge */}
         <AnimatePresence>
           {selectedHashtag && (
@@ -539,8 +546,8 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
                         </div>
                       ) : (
                       <div
-                        className={`relative px-3 pt-2 pb-5 rounded-xl w-full overflow-hidden ${isCurrentUser ? 'rounded-br-sm' : 'rounded-bl-sm'}`}
-                        style={{ backgroundColor: isCurrentUser ? '#2b5278' : '#212d3b' }}
+                        className="relative px-3 pt-2 pb-5 w-full overflow-hidden"
+                        style={{ backgroundColor: isCurrentUser ? '#2b5278' : '#212d3b', borderRadius: isCurrentUser ? '12px 12px 2px 12px' : '12px 12px 12px 2px' }}
                       >
                         <p className="text-xs font-bold mb-0.5" style={{ color: isCurrentUser ? '#7eb8e6' : msgUser.avatarColor || '#6ab3f3' }}>
                           {getDisplayName(msgUser.username)}
@@ -650,49 +657,49 @@ export default function GlobalChatPage({ onOpenMenu, onNavigateToChat, onOpenSet
                       </AnimatePresence>
                     </div>
 
-                    {/* Reaction Button */}
-                    <motion.button
-                      onClick={(e) => { e.stopPropagation(); setReactionPickerOpen(reactionPickerOpen === message.id ? null : message.id); }}
-                      whileHover={{ scale: 1.15 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
-                      style={{ width: 28, height: 28, borderRadius: 14, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginBottom: 4 }}
+                    {/* Action pill — Telegram style */}
+                    <div
+                      className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0 self-end"
+                      style={{ marginBottom: 6 }}
                     >
-                      <Heart style={{ width: 13, height: 13, color: '#8899aa' }} />
-                    </motion.button>
-
-                    {/* Reply Button */}
-                    <motion.button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setReplyTo({ messageId: message.id, username: msgUser.username, text: message.text });
-                        setEditingMessageId(null);
-                        setEditText('');
-                        setTimeout(() => inputRef.current?.focus(), 50);
-                      }}
-                      whileHover={{ scale: 1.15 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
-                      style={{ width: 28, height: 28, borderRadius: 14, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginBottom: 4 }}
-                    >
-                      <CornerUpLeft style={{ width: 13, height: 13, color: '#8899aa' }} />
-                    </motion.button>
-
-                    {/* Report Button */}
-                    {!isCurrentUser && (
-                      <motion.button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setReportModal({ userId: msgUser.id, username: msgUser.username, messageId: message.id, messageText: message.text });
-                        }}
-                        whileHover={{ scale: 1.15 }}
-                        whileTap={{ scale: 0.9 }}
-                        className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
-                        style={{ width: 28, height: 28, borderRadius: 14, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginBottom: 4 }}
-                      >
-                        <Flag style={{ width: 13, height: 13, color: '#8899aa' }} />
-                      </motion.button>
-                    )}
+                      <div style={{ background: 'rgba(20,24,36,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 22, padding: '3px 4px', display: 'flex', gap: 2, boxShadow: '0 2px 12px rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }}>
+                        <motion.button
+                          onClick={(e) => { e.stopPropagation(); setReactionPickerOpen(reactionPickerOpen === message.id ? null : message.id); }}
+                          whileHover={{ scale: 1.2 }}
+                          whileTap={{ scale: 0.85 }}
+                          style={{ width: 30, height: 30, borderRadius: 15, background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                        >
+                          <Heart style={{ width: 14, height: 14, color: '#8899aa' }} />
+                        </motion.button>
+                        <motion.button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setReplyTo({ messageId: message.id, username: msgUser.username, text: message.text });
+                            setEditingMessageId(null);
+                            setEditText('');
+                            setTimeout(() => inputRef.current?.focus(), 50);
+                          }}
+                          whileHover={{ scale: 1.2 }}
+                          whileTap={{ scale: 0.85 }}
+                          style={{ width: 30, height: 30, borderRadius: 15, background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                        >
+                          <CornerUpLeft style={{ width: 14, height: 14, color: '#8899aa' }} />
+                        </motion.button>
+                        {!isCurrentUser && (
+                          <motion.button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setReportModal({ userId: msgUser.id, username: msgUser.username, messageId: message.id, messageText: message.text });
+                            }}
+                            whileHover={{ scale: 1.2 }}
+                            whileTap={{ scale: 0.85 }}
+                            style={{ width: 30, height: 30, borderRadius: 15, background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                          >
+                            <Flag style={{ width: 14, height: 14, color: '#8899aa' }} />
+                          </motion.button>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   {/* Reactions Display */}
