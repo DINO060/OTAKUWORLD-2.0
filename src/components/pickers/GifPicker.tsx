@@ -11,8 +11,16 @@ import {
 import type { GifPayload } from '../../types';
 
 const PAGE_SIZE = 20;
-// Total panel height — search(44) + toggle(34) + tabs(32) + footer(30) = 140px chrome, ~160px for grid
-const PANEL_H = 300;
+
+// Chrome breakdown:
+// search bar:  44px
+// kind toggle: 36px
+// tabs:        34px
+// footer:      28px
+// padding:     ~16px
+// = 158px chrome → grid gets the rest
+// Panel at 360px → grid ≈ 202px  (comfortable)
+const PANEL_H = 360;
 
 type MediaKind = 'gif' | 'sticker';
 type ContentTab = 'trending' | 'search';
@@ -24,28 +32,27 @@ interface GifPickerProps {
 }
 
 export default function GifPicker({ isOpen, onClose, onSelect }: GifPickerProps) {
-  const [mediaKind, setMediaKind] = useState<MediaKind>('gif');
-  const [activeTab, setActiveTab] = useState<ContentTab>('trending');
-  const [query, setQuery] = useState('');
-  const [gifs, setGifs] = useState<GiphyGif[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [mediaKind, setMediaKind]     = useState<MediaKind>('gif');
+  const [activeTab, setActiveTab]     = useState<ContentTab>('trending');
+  const [query, setQuery]             = useState('');
+  const [gifs, setGifs]               = useState<GiphyGif[]>([]);
+  const [isLoading, setIsLoading]     = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
-  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore]         = useState(false);
+  const [offset, setOffset]           = useState(0);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef    = useRef<HTMLInputElement>(null);
 
   const loadData = useCallback(async (
     tab: ContentTab, q: string, kind: MediaKind, startOffset: number, append: boolean,
   ) => {
     if (!append) setIsLoading(true); else setIsLoadingMore(true);
-    let results: GiphyGif[];
-    if (tab === 'trending') {
-      results = kind === 'gif' ? await trendingGifs(startOffset, PAGE_SIZE) : await trendingStickers(startOffset, PAGE_SIZE);
-    } else {
-      results = kind === 'gif' ? await searchGifs(q, startOffset, PAGE_SIZE) : await searchStickers(q, startOffset, PAGE_SIZE);
-    }
+    const results: GiphyGif[] =
+      tab === 'trending'
+        ? kind === 'gif' ? await trendingGifs(startOffset, PAGE_SIZE)  : await trendingStickers(startOffset, PAGE_SIZE)
+        : kind === 'gif' ? await searchGifs(q, startOffset, PAGE_SIZE) : await searchStickers(q, startOffset, PAGE_SIZE);
+
     setGifs(prev => append ? [...prev, ...results] : results);
     setOffset(startOffset + results.length);
     setHasMore(results.length >= PAGE_SIZE);
@@ -95,6 +102,7 @@ export default function GifPicker({ isOpen, onClose, onSelect }: GifPickerProps)
 
   const handleSelect = (gif: GiphyGif) => {
     onSelect({ mp4: gif.mp4Url, gif: gif.gifUrl, title: gif.title, mediaKind });
+    onClose();
   };
 
   const hasApiKey = !!import.meta.env.VITE_GIPHY_API_KEY;
@@ -107,7 +115,7 @@ export default function GifPicker({ isOpen, onClose, onSelect }: GifPickerProps)
           animate={{ y: 0 }}
           exit={{ y: '100%' }}
           transition={{ type: 'tween', duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
-          style={{ position: 'fixed', insetInline: 0, bottom: 56, zIndex: 50 }}
+          style={{ position: 'fixed', left: 0, right: 0, bottom: 56, zIndex: 50 }}
           onClick={e => e.stopPropagation()}
         >
           <div style={{
@@ -122,7 +130,7 @@ export default function GifPicker({ isOpen, onClose, onSelect }: GifPickerProps)
             boxShadow: '0 -4px 24px rgba(0,0,0,0.5)',
           }}>
 
-            {/* Search bar */}
+            {/* ── Search bar ── */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px 6px', flexShrink: 0 }}>
               <div style={{ position: 'relative', flex: 1 }}>
                 <Search style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: 'rgba(255,255,255,0.35)', pointerEvents: 'none' }} />
@@ -134,10 +142,9 @@ export default function GifPicker({ isOpen, onClose, onSelect }: GifPickerProps)
                   placeholder={mediaKind === 'gif' ? 'Rechercher des GIFs…' : 'Rechercher des Stickers…'}
                   style={{
                     width: '100%', boxSizing: 'border-box',
-                    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                    background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
                     borderRadius: 10, paddingLeft: 32, paddingRight: query ? 28 : 10,
-                    paddingTop: 7, paddingBottom: 7,
-                    fontSize: 13, color: '#fff', outline: 'none',
+                    paddingTop: 8, paddingBottom: 8, fontSize: 13, color: '#fff', outline: 'none',
                   }}
                 />
                 {query && (
@@ -146,17 +153,17 @@ export default function GifPicker({ isOpen, onClose, onSelect }: GifPickerProps)
                   </button>
                 )}
               </div>
-              <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.06)', borderRadius: 8, padding: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <X style={{ width: 16, height: 16, color: 'rgba(255,255,255,0.5)' }} />
+              <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.07)', borderRadius: 8, padding: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <X style={{ width: 15, height: 15, color: 'rgba(255,255,255,0.5)' }} />
               </button>
             </div>
 
-            {/* GIFs / Stickers toggle */}
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '0 12px 6px', flexShrink: 0 }}>
-              <div style={{ display: 'flex', background: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: 3, gap: 3, width: '100%', maxWidth: 200 }}>
+            {/* ── GIFs / Stickers toggle ── */}
+            <div style={{ padding: '0 12px 6px', flexShrink: 0 }}>
+              <div style={{ display: 'flex', background: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: 3, gap: 3 }}>
                 {(['gif', 'sticker'] as const).map(k => (
                   <button key={k} onClick={() => handleMediaKindChange(k)} style={{
-                    flex: 1, padding: '5px 0', borderRadius: 8, fontSize: 11, fontWeight: 700,
+                    flex: 1, padding: '5px 0', borderRadius: 8, fontSize: 12, fontWeight: 700,
                     background: mediaKind === k ? '#6c5ce7' : 'transparent',
                     color: mediaKind === k ? '#fff' : 'rgba(255,255,255,0.4)',
                     transition: 'all 0.15s',
@@ -167,7 +174,7 @@ export default function GifPicker({ isOpen, onClose, onSelect }: GifPickerProps)
               </div>
             </div>
 
-            {/* Trending / Search tabs */}
+            {/* ── Trending / Search tabs ── */}
             <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.07)', flexShrink: 0 }}>
               {([['trending', 'Trending', TrendingUp], ['search', 'Search', Search]] as const).map(([tab, label, Icon]) => (
                 <button key={tab} onClick={() => handleTabChange(tab)} style={{
@@ -182,8 +189,8 @@ export default function GifPicker({ isOpen, onClose, onSelect }: GifPickerProps)
               ))}
             </div>
 
-            {/* Grid — flex-1 takes remaining space, NO minHeight */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: 6 }}>
+            {/* ── Grid — flex-1 + minHeight:0 pour ne jamais déborder ── */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: 6, minHeight: 0 }}>
               {isLoading && gifs.length === 0 ? (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
                   <Loader2 style={{ width: 24, height: 24, color: '#6c5ce7' }} className="animate-spin" />
@@ -191,32 +198,23 @@ export default function GifPicker({ isOpen, onClose, onSelect }: GifPickerProps)
               ) : gifs.length === 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 6, padding: '0 16px', textAlign: 'center' }}>
                   {!hasApiKey ? (
-                    <>
-                      <span style={{ fontSize: 20 }}>🔑</span>
-                      <p style={{ fontSize: 12, color: '#fff', margin: 0 }}>GIPHY API key manquante</p>
-                    </>
+                    <><span style={{ fontSize: 20 }}>🔑</span><p style={{ fontSize: 12, color: '#fff', margin: 0 }}>GIPHY API key manquante</p></>
                   ) : activeTab === 'search' && !query.trim() ? (
-                    <>
-                      <span style={{ fontSize: 20 }}>{mediaKind === 'gif' ? '🎬' : '✨'}</span>
-                      <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', margin: 0 }}>Tape pour rechercher</p>
-                    </>
+                    <><span style={{ fontSize: 20 }}>{mediaKind === 'gif' ? '🎬' : '✨'}</span><p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', margin: 0 }}>Tape pour rechercher</p></>
                   ) : (
-                    <>
-                      <span style={{ fontSize: 20 }}>😶</span>
-                      <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', margin: 0 }}>Rien trouvé</p>
-                    </>
+                    <><span style={{ fontSize: 20 }}>😶</span><p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', margin: 0 }}>Rien trouvé</p></>
                   )}
                 </div>
               ) : (
-                <div style={{ columns: 3, gap: 4 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
                   {gifs.map(gif => (
                     <motion.button
                       key={gif.id}
                       onClick={() => handleSelect(gif)}
                       whileTap={{ scale: 0.95 }}
                       style={{
-                        width: '100%', marginBottom: 4, borderRadius: 8, overflow: 'hidden',
-                        display: 'block', background: mediaKind === 'sticker' ? 'rgba(255,255,255,0.04)' : 'transparent',
+                        width: '100%', borderRadius: 8, overflow: 'hidden', display: 'block',
+                        background: mediaKind === 'sticker' ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.03)',
                         padding: mediaKind === 'sticker' ? 4 : 0,
                       }}
                     >
@@ -226,7 +224,8 @@ export default function GifPicker({ isOpen, onClose, onSelect }: GifPickerProps)
                         loading="lazy"
                         style={{
                           width: '100%',
-                          aspectRatio: '1 / 1',
+                          aspectRatio: mediaKind === 'sticker' ? '1 / 1' : undefined,
+                          maxHeight: mediaKind === 'gif' ? 100 : undefined,
                           objectFit: mediaKind === 'sticker' ? 'contain' : 'cover',
                           borderRadius: 6,
                           display: 'block',
@@ -235,13 +234,13 @@ export default function GifPicker({ isOpen, onClose, onSelect }: GifPickerProps)
                     </motion.button>
                   ))}
                   {isLoadingMore && [0, 1, 2].map(i => (
-                    <div key={i} style={{ width: '100%', aspectRatio: '1/1', borderRadius: 8, background: 'rgba(255,255,255,0.06)', marginBottom: 4 }} />
+                    <div key={i} style={{ aspectRatio: '4/3', borderRadius: 8, background: 'rgba(255,255,255,0.06)' }} />
                   ))}
                 </div>
               )}
             </div>
 
-            {/* Footer */}
+            {/* ── Footer ── */}
             <div style={{ padding: '5px 12px', borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
               {hasMore && !isLoading ? (
                 <button onClick={() => loadData(activeTab, query, mediaKind, offset, true)} disabled={isLoadingMore}
