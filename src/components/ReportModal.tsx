@@ -99,47 +99,35 @@ export default function ReportModal({
             className="fixed bottom-0 left-0 right-0 z-[70] sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-[380px]"
             onClick={e => e.stopPropagation()}
           >
-            <div className="bg-card rounded-t-2xl sm:rounded-2xl border border-border shadow-2xl overflow-hidden">
+            <div style={{ background: '#13131f', borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 24px 48px rgba(0,0,0,0.7)', overflow: 'hidden' }}>
               {/* Header */}
-              <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-                <div className="flex items-center gap-2">
-                  <Flag className="w-4 h-4 text-red-500" />
-                  <span className="text-sm font-bold text-foreground">Signaler @{reportedUsername}</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Flag style={{ width: 16, height: 16, color: '#ef4444' }} />
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#e8e8ed' }}>Signaler @{reportedUsername}</span>
                 </div>
-                <button onClick={handleClose} className="p-1 hover:bg-secondary rounded-lg transition-colors">
-                  <X className="w-4 h-4 text-muted-foreground" />
+                <button onClick={handleClose} style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <X style={{ width: 16, height: 16, color: '#8899aa' }} />
                 </button>
               </div>
 
-              <div className="p-4 space-y-3">
+              <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {/* Message preview */}
                 {reportedMessageText && (
-                  <div className="bg-secondary rounded-lg px-3 py-2 text-xs text-muted-foreground border-l-2 border-border">
-                    <span className="text-foreground/60">Message : </span>
-                    <span className="truncate">{reportedMessageText.slice(0, 80)}{reportedMessageText.length > 80 ? '…' : ''}</span>
-                  </div>
-                )}
-
-                {/* Chapter preview */}
-                {reportedChapterTitle && (
-                  <div className="bg-secondary rounded-lg px-3 py-2 text-xs text-muted-foreground border-l-2 border-purple-500/50">
-                    <span className="text-foreground/60">Chapitre : </span>
-                    <span className="text-foreground font-medium">{reportedChapterTitle}</span>
+                  <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#8899aa', borderLeft: '2px solid rgba(255,255,255,0.1)' }}>
+                    <span style={{ color: '#aaa' }}>Message : </span>
+                    {reportedMessageText.slice(0, 80)}{reportedMessageText.length > 80 ? '…' : ''}
                   </div>
                 )}
 
                 {/* Reason selection */}
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Motif du signalement</p>
-                <div className="space-y-1.5">
+                <p style={{ fontSize: 11, fontWeight: 600, color: '#8899aa', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>Motif du signalement</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {REASONS.map(reason => (
                     <button
                       key={reason}
                       onClick={() => setSelectedReason(reason)}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                        selectedReason === reason
-                          ? 'bg-red-500/20 text-red-400 border border-red-500/40'
-                          : 'bg-secondary text-foreground hover:bg-accent'
-                      }`}
+                      style={{ width: '100%', textAlign: 'left', padding: '10px 12px', borderRadius: 8, fontSize: 13, cursor: 'pointer', border: selectedReason === reason ? '1px solid rgba(239,68,68,0.4)' : '1px solid rgba(255,255,255,0.06)', background: selectedReason === reason ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.04)', color: selectedReason === reason ? '#f87171' : '#c8d0dc', transition: 'all 0.15s' }}
                     >
                       {reason}
                     </button>
@@ -154,7 +142,7 @@ export default function ReportModal({
                     maxLength={300}
                     rows={2}
                     placeholder="Décrivez le problème..."
-                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-red-500 resize-none"
+                    style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 12px', fontSize: 13, color: '#e8e8ed', outline: 'none', resize: 'none', boxSizing: 'border-box' }}
                   />
                 )}
 

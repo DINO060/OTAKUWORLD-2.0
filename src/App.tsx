@@ -72,24 +72,6 @@ export default function App() {
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
-  // Pull-to-refresh
-  useEffect(() => {
-    let startY = 0;
-    let pulling = false;
-    const onTouchStart = (e: TouchEvent) => {
-      if (window.scrollY === 0) { startY = e.touches[0].clientY; pulling = true; }
-    };
-    const onTouchEnd = (e: TouchEvent) => {
-      if (pulling && e.changedTouches[0].clientY - startY > 80) window.location.reload();
-      pulling = false;
-    };
-    document.addEventListener('touchstart', onTouchStart, { passive: true });
-    document.addEventListener('touchend', onTouchEnd, { passive: true });
-    return () => {
-      document.removeEventListener('touchstart', onTouchStart);
-      document.removeEventListener('touchend', onTouchEnd);
-    };
-  }, []);
 
   const handleInstall = async () => {
     if (!installPrompt) return;

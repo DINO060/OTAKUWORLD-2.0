@@ -2,12 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ArrowLeft,
-  Sun,
   Moon,
   Monitor,
   Eye,
   EyeOff,
-  Sparkles,
   User,
   LogOut,
   Loader2,
@@ -21,7 +19,6 @@ import {
   Camera,
   MessageCircle,
   ShieldCheck,
-  Info,
   Globe,
   Send,
   Megaphone,
@@ -71,17 +68,16 @@ export default function Settings({ onBack, onAdminClick }: SettingsProps) {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarMsg, setAvatarMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  // Privacy: allow DMs toggle
+  // Privacy
   const [allowDms, setAllowDms] = useState<boolean>(profile?.allowDms !== false);
   const [dmsSaving, setDmsSaving] = useState(false);
 
-  // Content filter: mature content preference (synced with DB)
+  // Content filter
   const [matureFilter, setMatureFilter] = useState<MatureContent>(
     (profile?.matureFilter as MatureContent) || settings.matureContent
   );
   const [matureFilterSaving, setMatureFilterSaving] = useState(false);
 
-  // Sync with profile when it loads
   useEffect(() => {
     if (profile) setAllowDms(profile.allowDms !== false);
   }, [profile?.allowDms]);
@@ -100,7 +96,7 @@ export default function Settings({ onBack, onAdminClick }: SettingsProps) {
 
   const handleMatureFilterChange = async (value: MatureContent) => {
     setMatureFilter(value);
-    updateSetting('matureContent', value); // also keep localStorage in sync
+    updateSetting('matureContent', value);
     if (isAuthenticated) {
       setMatureFilterSaving(true);
       await updateProfile({ matureFilter: value });
@@ -133,9 +129,7 @@ export default function Settings({ onBack, onAdminClick }: SettingsProps) {
   }, [settings]);
 
   useEffect(() => {
-    const root = document.documentElement;
-    // Always force dark — light mode not fully supported (hardcoded dark colors in OtakuWorld)
-    root.classList.add('dark');
+    document.documentElement.classList.add('dark');
   }, [settings.theme]);
 
   const updateSetting = <K extends keyof UserSettings>(key: K, value: UserSettings[K]) => {
@@ -162,23 +156,17 @@ export default function Settings({ onBack, onAdminClick }: SettingsProps) {
     if (!editName.trim()) return;
     setProfileSaving(true);
     setProfileMsg(null);
-
-    // Check handle uniqueness if changed
     const cleanHandle = editHandle.trim().replace(/^@/, '').replace(/[^a-z0-9_]/gi, '').toLowerCase();
     if (cleanHandle && cleanHandle !== (profile?.handle || '')) {
       const { data: taken } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('handle', cleanHandle)
-        .neq('id', user!.id)
-        .maybeSingle();
+        .from('profiles').select('id')
+        .eq('handle', cleanHandle).neq('id', user!.id).maybeSingle();
       if (taken) {
         setProfileSaving(false);
         setProfileMsg({ ok: false, text: `@${cleanHandle} est déjà pris` });
         return;
       }
     }
-
     const { error } = await updateProfile({
       username: editName.trim(),
       handle: cleanHandle || undefined,
@@ -215,101 +203,31 @@ export default function Settings({ onBack, onAdminClick }: SettingsProps) {
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
-
     const validation = await validateAvatar(file);
     if (!validation.ok) {
       setAvatarMsg({ ok: false, text: validation.error! });
       e.target.value = '';
       return;
     }
-
     setAvatarUploading(true);
     setAvatarMsg(null);
-
     try {
       const ext = file.name.split('.').pop() || 'jpg';
       const path = `avatars/${user.id}/avatar.${ext}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('chapters')
-        .upload(path, file, { upsert: true });
-
+      const { error: uploadError } = await supabase.storage.from('chapters').upload(path, file, { upsert: true });
       if (uploadError) throw uploadError;
-
       const { data: urlData } = supabase.storage.from('chapters').getPublicUrl(path);
-      const publicUrl = urlData.publicUrl;
-
-      const { error: profileError } = await updateProfile({ avatarImage: publicUrl });
+      const { error: profileError } = await updateProfile({ avatarImage: urlData.publicUrl });
       if (profileError) throw new Error(profileError);
-
-      setAvatarMsg({ ok: true, text: 'Avatar updated!' });
+      setAvatarMsg({ ok: true, text: 'Avatar mis à jour !' });
       setTimeout(() => setAvatarMsg(null), 2000);
     } catch (err: any) {
       setAvatarMsg({ ok: false, text: err.message || 'Upload failed' });
     } finally {
       setAvatarUploading(false);
-      // Reset file input so same file can be re-selected
       if (avatarInputRef.current) avatarInputRef.current.value = '';
     }
   };
-
-  // ── Sub-components ──
-
-  const SectionHeader = ({ icon: Icon, title }: { icon: typeof Sun; title: string }) => (
-    <div className="flex items-center gap-2 px-4 py-3 bg-card border-b border-border">
-      <Icon className="w-4 h-4 text-purple-500" />
-      <span className="text-sm font-semibold text-foreground">{title}</span>
-    </div>
-  );
-
-  const Toggle = ({ enabled, onChange }: { enabled: boolean; onChange: (v: boolean) => void }) => (
-    <button
-      onClick={() => onChange(!enabled)}
-      className={`relative w-11 h-6 rounded-full transition-colors ${enabled ? 'bg-purple-600' : 'bg-secondary'}`}
-    >
-      <motion.div
-        animate={{ x: enabled ? 20 : 2 }}
-        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-        className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-md"
-      />
-    </button>
-  );
-
-  const RadioOption = ({ selected, label, icon: Icon, onClick }: { selected: boolean; label: string; icon?: typeof Sun; onClick: () => void }) => (
-    <button
-      onClick={onClick}
-      className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${selected ? 'bg-purple-600 text-white' : 'bg-secondary text-muted-foreground hover:bg-accent'}`}
-    >
-      {Icon && <Icon className="w-4 h-4" />}
-      <span className="text-xs font-medium">{label}</span>
-      {selected && <Check className="w-3 h-3 ml-1" />}
-    </button>
-  );
-
-  const AccountRow = ({ icon: Icon, label, panel }: { icon: typeof Mail; label: string; panel: 'profile' | 'email' }) => (
-    <button
-      onClick={() => openPanel(panel)}
-      className="flex items-center justify-between w-full px-4 py-3 bg-background hover:bg-card transition-colors"
-    >
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 bg-secondary rounded-lg flex items-center justify-center">
-          <Icon className="w-4 h-4 text-muted-foreground" />
-        </div>
-        <span className="text-sm text-foreground">{label}</span>
-      </div>
-      <motion.div animate={{ rotate: editPanel === panel ? 180 : 0 }} transition={{ duration: 0.2 }}>
-        <ChevronDown className="w-4 h-4 text-muted-foreground" />
-      </motion.div>
-    </button>
-  );
-
-  const Feedback = ({ msg }: { msg: { ok: boolean; text: string } | null }) =>
-    msg ? (
-      <p className={`text-xs mt-1.5 flex items-center gap-1 ${msg.ok ? 'text-green-400' : 'text-red-400'}`}>
-        {msg.ok ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-        {msg.text}
-      </p>
-    ) : null;
 
   // ── Legal Pages ──────────────────────────────────────────────────────
   if (legalPage) {
@@ -318,7 +236,7 @@ export default function Settings({ onBack, onAdminClick }: SettingsProps) {
       <div className="h-full flex flex-col bg-background overflow-y-auto">
         <header className="flex-shrink-0 bg-card border-b border-border px-4 py-4">
           <div className="flex items-center gap-3">
-            <motion.button onClick={() => setLegalPage(null)} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="w-10 h-10 bg-secondary hover:bg-accent rounded-xl flex items-center justify-center transition-colors">
+            <motion.button onClick={() => setLegalPage(null)} whileTap={{ scale: 0.95 }} className="w-10 h-10 bg-secondary hover:bg-accent rounded-xl flex items-center justify-center transition-colors">
               <ArrowLeft className="w-5 h-5 text-foreground" />
             </motion.button>
             <h1 className="text-xl font-bold text-foreground">{isTerms ? "Conditions d'utilisation" : 'Politique de confidentialité'}</h1>
@@ -369,51 +287,49 @@ export default function Settings({ onBack, onAdminClick }: SettingsProps) {
                 <section className="space-y-2">
                   <h2 className="text-lg font-bold text-foreground">5. Contenu utilisateur</h2>
                   <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
-                    <li>Vous conservez la propriété du contenu que vous publiez (messages, chapitres, images).</li>
-                    <li>En publiant du contenu, vous accordez à Comment Live une licence non exclusive pour l'afficher sur la Plateforme.</li>
+                    <li>Vous conservez la propriété du contenu que vous publiez.</li>
+                    <li>En publiant du contenu, vous accordez à Comment Live une licence non exclusive pour l'afficher.</li>
                     <li>Le contenu marqué 16+ ou 18+ doit être correctement classifié par l'auteur.</li>
                     <li>Les administrateurs se réservent le droit de supprimer tout contenu enfreignant ces conditions.</li>
                   </ul>
                 </section>
                 <section className="space-y-2">
                   <h2 className="text-lg font-bold text-foreground">6. Propriété intellectuelle</h2>
-                  <p className="text-sm text-muted-foreground">Les utilisateurs publiant des chapitres de mangas/webtoons doivent être les auteurs originaux ou détenir les droits de publication. Le partage de contenu protégé par le droit d'auteur sans autorisation est interdit et entraînera la suppression du contenu et potentiellement du compte.</p>
+                  <p className="text-sm text-muted-foreground">Les utilisateurs publiant des chapitres de mangas/webtoons doivent être les auteurs originaux ou détenir les droits de publication. Le partage de contenu protégé par le droit d'auteur sans autorisation est interdit.</p>
                 </section>
                 <section className="space-y-2">
                   <h2 className="text-lg font-bold text-foreground">7. Modération et sanctions</h2>
                   <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
-                    <li>Les administrateurs peuvent avertir, suspendre temporairement ou bannir définitivement un utilisateur.</li>
+                    <li>Les administrateurs peuvent avertir, suspendre ou bannir un utilisateur.</li>
                     <li>Les signalements sont examinés par l'équipe de modération.</li>
-                    <li>Les décisions de modération sont prises à la discrétion de l'équipe et sont définitives.</li>
+                    <li>Les décisions de modération sont définitives.</li>
                   </ul>
                 </section>
                 <section className="space-y-2">
                   <h2 className="text-lg font-bold text-foreground">8. Limitation de responsabilité</h2>
-                  <p className="text-sm text-muted-foreground">La Plateforme est fournie « en l'état ». Comment Live ne garantit pas la disponibilité permanente du service et ne peut être tenu responsable des pertes de données, interruptions de service ou dommages résultant de l'utilisation de la Plateforme.</p>
+                  <p className="text-sm text-muted-foreground">La Plateforme est fournie « en l'état ». Comment Live ne peut être tenu responsable des pertes de données ou interruptions de service.</p>
                 </section>
                 <section className="space-y-2">
                   <h2 className="text-lg font-bold text-foreground">9. Modifications</h2>
-                  <p className="text-sm text-muted-foreground">Nous nous réservons le droit de modifier ces conditions à tout moment. Les utilisateurs seront notifiés des changements significatifs. L'utilisation continue de la Plateforme après modification vaut acceptation des nouvelles conditions.</p>
+                  <p className="text-sm text-muted-foreground">Nous nous réservons le droit de modifier ces conditions. L'utilisation continue de la Plateforme vaut acceptation des nouvelles conditions.</p>
                 </section>
                 <section className="space-y-2">
                   <h2 className="text-lg font-bold text-foreground">10. Contact</h2>
-                  <p className="text-sm text-muted-foreground">Pour toute question concernant ces conditions, utilisez la fonctionnalité « Envoyer un feedback » dans les paramètres ou contactez l'équipe via le Discord de la communauté.</p>
+                  <p className="text-sm text-muted-foreground">Pour toute question, utilisez la fonctionnalité « Envoyer un feedback » dans les paramètres.</p>
                 </section>
               </>
             ) : (
               <>
                 <section className="space-y-2">
                   <h2 className="text-lg font-bold text-foreground">1. Introduction</h2>
-                  <p className="text-sm text-muted-foreground">Comment Live (« nous », « notre ») s'engage à protéger la vie privée de ses utilisateurs. Cette politique explique quelles données nous collectons, comment nous les utilisons et quels sont vos droits.</p>
+                  <p className="text-sm text-muted-foreground">Comment Live s'engage à protéger la vie privée de ses utilisateurs. Cette politique explique quelles données nous collectons et comment nous les utilisons.</p>
                 </section>
                 <section className="space-y-2">
                   <h2 className="text-lg font-bold text-foreground">2. Données collectées</h2>
                   <p className="text-sm font-semibold text-foreground mt-2">Données fournies par l'utilisateur :</p>
                   <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
-                    <li>Adresse e-mail (inscription)</li>
-                    <li>Nom d'utilisateur et @handle</li>
-                    <li>Photo de profil (avatar)</li>
-                    <li>Biographie</li>
+                    <li>Adresse e-mail, nom d'utilisateur et @handle</li>
+                    <li>Photo de profil (avatar) et biographie</li>
                     <li>Messages publics et privés</li>
                     <li>Chapitres publiés (textes, images, PDF, CBZ)</li>
                   </ul>
@@ -426,68 +342,47 @@ export default function Settings({ onBack, onAdminClick }: SettingsProps) {
                 </section>
                 <section className="space-y-2">
                   <h2 className="text-lg font-bold text-foreground">3. Utilisation des données</h2>
-                  <p className="text-sm text-muted-foreground">Vos données sont utilisées pour :</p>
                   <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
                     <li>Fournir et améliorer les services de la Plateforme</li>
                     <li>Gérer votre compte et authentification</li>
                     <li>Afficher votre profil public aux autres utilisateurs</li>
                     <li>Permettre la messagerie privée entre utilisateurs</li>
                     <li>Modérer le contenu et assurer la sécurité de la communauté</li>
-                    <li>Générer des statistiques anonymisées d'utilisation</li>
                   </ul>
                 </section>
                 <section className="space-y-2">
                   <h2 className="text-lg font-bold text-foreground">4. Stockage et sécurité</h2>
                   <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
-                    <li>Les données sont stockées sur les serveurs Supabase (infrastructure cloud sécurisée).</li>
-                    <li>Les fichiers (images, PDF, CBZ) sont stockés sur Supabase Storage et/ou Cloudflare R2.</li>
+                    <li>Les données sont stockées sur les serveurs Supabase.</li>
                     <li>Les mots de passe sont hachés et ne sont jamais stockés en clair.</li>
-                    <li>Les communications avec les serveurs sont chiffrées via HTTPS/TLS.</li>
-                    <li>L'accès aux données est protégé par des politiques de sécurité au niveau des lignes (RLS).</li>
+                    <li>Les communications sont chiffrées via HTTPS/TLS.</li>
+                    <li>L'accès aux données est protégé par des politiques RLS.</li>
                   </ul>
                 </section>
                 <section className="space-y-2">
                   <h2 className="text-lg font-bold text-foreground">5. Partage des données</h2>
-                  <p className="text-sm text-muted-foreground">Nous ne vendons jamais vos données personnelles. Vos données peuvent être partagées avec :</p>
-                  <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
-                    <li><strong>Supabase</strong> — hébergement de la base de données et authentification</li>
-                    <li><strong>Cloudflare</strong> — stockage de fichiers et CDN</li>
-                    <li><strong>Tenor/GIPHY</strong> — recherche de GIFs (aucune donnée personnelle transmise)</li>
-                    <li><strong>Autorités légales</strong> — uniquement en cas d'obligation légale</li>
-                  </ul>
+                  <p className="text-sm text-muted-foreground">Nous ne vendons jamais vos données personnelles. Elles peuvent être partagées avec Supabase, Cloudflare, Tenor/GIPHY et les autorités légales uniquement.</p>
                 </section>
                 <section className="space-y-2">
                   <h2 className="text-lg font-bold text-foreground">6. Vos droits</h2>
-                  <p className="text-sm text-muted-foreground">Conformément au RGPD et aux réglementations applicables, vous disposez des droits suivants :</p>
                   <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
-                    <li><strong>Accès</strong> — consulter les données que nous détenons sur vous</li>
-                    <li><strong>Rectification</strong> — modifier vos informations personnelles via les paramètres</li>
-                    <li><strong>Suppression</strong> — demander la suppression de votre compte et données associées</li>
-                    <li><strong>Portabilité</strong> — demander une copie de vos données dans un format standard</li>
-                    <li><strong>Opposition</strong> — vous opposer au traitement de vos données</li>
+                    <li><strong>Accès</strong> — consulter vos données</li>
+                    <li><strong>Rectification</strong> — modifier vos informations via les paramètres</li>
+                    <li><strong>Suppression</strong> — demander la suppression de votre compte</li>
+                    <li><strong>Portabilité</strong> — demander une copie de vos données</li>
                   </ul>
-                  <p className="text-sm text-muted-foreground">Pour exercer ces droits, contactez-nous via le système de feedback ou le Discord communautaire.</p>
                 </section>
                 <section className="space-y-2">
                   <h2 className="text-lg font-bold text-foreground">7. Cookies et stockage local</h2>
-                  <p className="text-sm text-muted-foreground">La Plateforme utilise le localStorage du navigateur pour stocker :</p>
-                  <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
-                    <li>Vos préférences (thème, filtre de contenu mature)</li>
-                    <li>Votre session d'authentification (gérée par Supabase)</li>
-                  </ul>
-                  <p className="text-sm text-muted-foreground">Aucun cookie tiers de tracking n'est utilisé.</p>
+                  <p className="text-sm text-muted-foreground">La Plateforme utilise le localStorage pour vos préférences et votre session. Aucun cookie tiers de tracking n'est utilisé.</p>
                 </section>
                 <section className="space-y-2">
                   <h2 className="text-lg font-bold text-foreground">8. Contenu des mineurs</h2>
-                  <p className="text-sm text-muted-foreground">La Plateforme n'est pas destinée aux enfants de moins de 13 ans. Si nous apprenons qu'un enfant de moins de 13 ans a créé un compte, celui-ci sera supprimé.</p>
+                  <p className="text-sm text-muted-foreground">La Plateforme n'est pas destinée aux enfants de moins de 13 ans.</p>
                 </section>
                 <section className="space-y-2">
-                  <h2 className="text-lg font-bold text-foreground">9. Modifications</h2>
-                  <p className="text-sm text-muted-foreground">Cette politique peut être mise à jour. La date de dernière modification est indiquée en haut de cette page. Nous vous encourageons à la consulter régulièrement.</p>
-                </section>
-                <section className="space-y-2">
-                  <h2 className="text-lg font-bold text-foreground">10. Contact</h2>
-                  <p className="text-sm text-muted-foreground">Pour toute question relative à la confidentialité de vos données, utilisez la fonctionnalité « Envoyer un feedback » dans les paramètres.</p>
+                  <h2 className="text-lg font-bold text-foreground">9. Contact</h2>
+                  <p className="text-sm text-muted-foreground">Pour toute question, utilisez la fonctionnalité « Envoyer un feedback » dans les paramètres.</p>
                 </section>
               </>
             )}
@@ -498,327 +393,453 @@ export default function Settings({ onBack, onAdminClick }: SettingsProps) {
     );
   }
 
-  const S = {
-    bg: '#0c0c14',
-    card: '#13131f',
-    border: 'rgba(255,255,255,0.08)',
-    text: '#e8e8ed',
-    muted: '#8899aa',
-    purple: '#6c5ce7',
+  // ── Design tokens ──────────────────────────────────────────────────────
+
+  const C = {
+    bg: '#0d0d1a',
+    card: '#1a1a2e',
+    accent: '#6c5ce7',
+    accentLight: 'rgba(108,92,231,0.15)',
+    accentGlow: 'rgba(108,92,231,0.3)',
+    danger: '#e74c3c',
+    dangerLight: 'rgba(231,76,60,0.12)',
+    success: '#00b894',
+    text: '#ffffff',
+    textMuted: 'rgba(255,255,255,0.45)',
+    textSub: 'rgba(255,255,255,0.65)',
+    border: 'rgba(255,255,255,0.06)',
   };
 
-  const Card = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
-    <div className={`overflow-hidden ${className}`} style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 14, margin: '0 12px' }}>
+  // ── Sub-components ─────────────────────────────────────────────────────
+
+  const SectionLabel = ({ children }: { children: React.ReactNode }) => (
+    <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: C.textMuted, textTransform: 'uppercase', padding: '20px 0 8px' }}>
       {children}
     </div>
   );
 
-  const CardRow = ({ icon, iconBg, label, sublabel, right, onClick, danger }: {
-    icon: React.ReactNode; iconBg: string; label: string; sublabel?: string;
-    right?: React.ReactNode; onClick?: () => void; danger?: boolean;
+  const Card = ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
+    <div style={{ background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, overflow: 'hidden', ...style }}>
+      {children}
+    </div>
+  );
+
+  const SettingRow = ({
+    icon, iconBg, label, sub, right, danger = false, onClick, noBorder = false,
+  }: {
+    icon: React.ReactNode; iconBg?: string; label: string; sub?: string;
+    right?: React.ReactNode; danger?: boolean; onClick?: () => void; noBorder?: boolean;
   }) => (
-    <button
+    <div
       onClick={onClick}
-      className={`flex items-center gap-3 w-full transition-colors text-left ${onClick ? 'hover:bg-white/5 active:bg-white/10' : 'cursor-default'}`}
-      style={{ padding: '13px 16px' }}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 14,
+        padding: '13px 16px',
+        cursor: onClick ? 'pointer' : 'default',
+        borderBottom: noBorder ? 'none' : `1px solid ${C.border}`,
+        borderRadius: noBorder ? '0 0 12px 12px' : 0,
+        transition: 'background 0.15s',
+      }}
+      onMouseEnter={e => { if (onClick) e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
     >
-      <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: iconBg }}>
+      <div style={{ width: 36, height: 36, borderRadius: 10, background: iconBg || C.accentLight, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         {icon}
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium" style={{ color: danger ? '#ff6b6b' : S.text }}>{label}</p>
-        {sublabel && <p className="text-xs mt-0.5" style={{ color: S.muted }}>{sublabel}</p>}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: danger ? C.danger : C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {label}
+        </div>
+        {sub && <div style={{ fontSize: 12, color: C.textMuted, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sub}</div>}
       </div>
-      {right && <div className="flex-shrink-0">{right}</div>}
-    </button>
+      {right !== undefined && <div style={{ flexShrink: 0 }}>{right}</div>}
+    </div>
   );
 
-  const Divider = () => <div style={{ height: '1px', background: S.border }} />;
-
-  const Label = ({ text }: { text: string }) => (
-    <p style={{ padding: '20px 16px 6px', fontSize: 11, fontWeight: 700, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{text}</p>
+  const SegmentControl = ({ options, value, onChange }: {
+    options: { label: string; value: string }[];
+    value: string;
+    onChange: (v: string) => void;
+  }) => (
+    <div style={{ display: 'flex', background: 'rgba(255,255,255,0.06)', borderRadius: 8, padding: 3, gap: 2 }}>
+      {options.map(opt => (
+        <button
+          key={opt.value}
+          onClick={() => onChange(opt.value)}
+          style={{
+            padding: '5px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600,
+            background: value === opt.value ? C.accent : 'transparent',
+            color: value === opt.value ? '#fff' : C.textMuted,
+            transition: 'all 0.2s', cursor: 'pointer',
+          }}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
   );
+
+  const CSSToggle = ({ enabled, onChange, disabled = false }: { enabled: boolean; onChange: () => void; disabled?: boolean }) => (
+    <div
+      onClick={!disabled ? onChange : undefined}
+      style={{
+        width: 48, height: 26, borderRadius: 13,
+        background: enabled ? C.accent : 'rgba(255,255,255,0.15)',
+        position: 'relative', cursor: disabled ? 'default' : 'pointer',
+        transition: 'background 0.25s', flexShrink: 0,
+        opacity: disabled ? 0.5 : 1,
+      }}
+    >
+      <div style={{
+        position: 'absolute', top: 3, left: enabled ? 25 : 3,
+        width: 20, height: 20, borderRadius: '50%',
+        background: '#fff', transition: 'left 0.25s',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
+      }} />
+    </div>
+  );
+
+  const InlineMsg = ({ msg }: { msg: { ok: boolean; text: string } | null }) =>
+    msg ? (
+      <p style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 4, color: msg.ok ? C.success : C.danger, margin: '6px 0 0' }}>
+        {msg.ok ? <Check size={12} /> : <X size={12} />}
+        {msg.text}
+      </p>
+    ) : null;
+
+  // ── Main render ────────────────────────────────────────────────────────
 
   return (
-    <div className="h-full flex flex-col overflow-y-auto" style={{ background: S.bg }}>
-      {/* Header */}
-      <div className="flex items-center gap-3 px-4 pt-5 pb-3 flex-shrink-0">
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: C.bg, color: C.text, overflow: 'hidden' }}>
+
+      {/* Sticky header */}
+      <header style={{
+        flexShrink: 0,
+        position: 'sticky', top: 0, zIndex: 10,
+        background: 'rgba(13,13,26,0.9)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        borderBottom: `1px solid ${C.border}`,
+        padding: '0 16px',
+        display: 'flex', alignItems: 'center',
+        height: 56, gap: 12,
+      }}>
         <motion.button
           onClick={onBack}
           whileTap={{ scale: 0.9 }}
-          className="w-9 h-9 rounded-xl flex items-center justify-center"
-          style={{ background: S.card, border: `1px solid ${S.border}` }}
+          style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
         >
-          <ArrowLeft size={18} style={{ color: S.text }} />
+          <ArrowLeft size={18} style={{ color: C.text }} />
         </motion.button>
-        <h1 className="text-lg font-bold" style={{ color: S.text }}>Paramètres</h1>
-      </div>
+        <span style={{ fontSize: 17, fontWeight: 700, color: C.text }}>Paramètres</span>
+      </header>
 
-      <div className="flex-1 overflow-y-auto pb-10">
+      {/* Scrollable content */}
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        <div style={{ maxWidth: 600, margin: '0 auto', padding: '12px 16px 40px' }}>
 
-        {/* ══ PROFILE BANNER ══ */}
+          {/* ── PROFILE CARD ── */}
+          {isAuthenticated ? (
+            <>
+              <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
 
-        {isAuthenticated ? (
-          <>
-            <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
-
-            {/* Profile Card */}
-            <div style={{ margin: '0 12px', borderRadius: 14, overflow: 'hidden', background: S.card, border: `1px solid ${S.border}` }}>
-              {/* Banner */}
-              <div className="h-20 relative" style={{ background: 'linear-gradient(135deg, #6c5ce7, #a29bfe)' }} />
-              {/* Avatar + info */}
-              <div className="px-4 pb-4">
-                <div className="flex items-end gap-3 -mt-8 mb-3">
-                  <button onClick={() => avatarInputRef.current?.click()} disabled={avatarUploading} className="relative group flex-shrink-0">
-                    {profile?.avatarImage ? (
-                      <img src={profile.avatarImage} alt="avatar" className="w-16 h-16 rounded-2xl object-cover ring-4" style={{ ringColor: S.card }} />
-                    ) : (
-                      <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-xl font-bold ring-4" style={{ backgroundColor: profile?.avatarColor || S.purple }}>
-                        {profile?.username?.slice(0, 2).toUpperCase() || 'U'}
+              <div style={{ borderRadius: 16, overflow: 'hidden', border: `1px solid ${C.border}`, marginBottom: 8 }}>
+                {/* Banner */}
+                <div style={{ height: 80, background: 'linear-gradient(135deg, #6c5ce7 0%, #a29bfe 50%, #fd79a8 100%)' }} />
+                {/* Avatar + info */}
+                <div style={{ background: C.card, padding: '0 16px 16px' }}>
+                  <div style={{ position: 'relative', display: 'inline-block', marginTop: -28 }}>
+                    <button
+                      onClick={() => avatarInputRef.current?.click()}
+                      disabled={avatarUploading}
+                      className="group"
+                      style={{ display: 'block', position: 'relative' }}
+                    >
+                      {profile?.avatarImage ? (
+                        <img src={profile.avatarImage} alt="avatar" style={{ width: 64, height: 64, borderRadius: 16, objectFit: 'cover', border: `3px solid ${C.card}`, display: 'block' }} />
+                      ) : (
+                        <div style={{ width: 64, height: 64, borderRadius: 16, background: C.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 700, color: '#fff', border: `3px solid ${C.card}` }}>
+                          {profile?.username?.slice(0, 2).toUpperCase() || 'U'}
+                        </div>
+                      )}
+                      {/* Status dot */}
+                      <div style={{ position: 'absolute', bottom: 2, right: 2, width: 12, height: 12, borderRadius: '50%', background: C.success, border: `2px solid ${C.card}` }} />
+                      {/* Camera hover overlay */}
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" style={{ borderRadius: 16, background: 'rgba(0,0,0,0.55)' }}>
+                        {avatarUploading ? <Loader2 size={18} className="text-white animate-spin" /> : <Camera size={18} className="text-white" />}
+                      </div>
+                    </button>
+                  </div>
+                  <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{profile?.username || 'User'}</div>
+                      <div style={{ fontSize: 13, color: C.textMuted }}>@{profile?.handle || profile?.username}</div>
+                    </div>
+                    {profile?.bio && (
+                      <div style={{ padding: '4px 10px', borderRadius: 20, background: 'rgba(108,92,231,0.15)', color: '#a29bfe', fontSize: 12, fontWeight: 600, flexShrink: 0 }}>
+                        ✨ OtakuWorld
                       </div>
                     )}
-                    <div className="absolute inset-0 rounded-2xl bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      {avatarUploading ? <Loader2 size={20} className="text-white animate-spin" /> : <Camera size={20} className="text-white" />}
-                    </div>
-                  </button>
-                  <div className="flex-1 min-w-0 pb-1">
-                    <p className="font-bold truncate" style={{ color: S.text, fontSize: '15px' }}>{profile?.username || 'User'}</p>
-                    <p className="text-xs truncate" style={{ color: '#a29bfe' }}>@{profile?.handle || profile?.username}</p>
                   </div>
-                  <div className="flex items-center gap-1 pb-1">
-                    <div className="w-2 h-2 rounded-full bg-green-500" />
-                    <span className="text-xs text-green-500">En ligne</span>
-                  </div>
+                  {profile?.bio && <div style={{ marginTop: 6, fontSize: 13, color: C.textSub }}>{profile.bio}</div>}
+                  <div style={{ marginTop: 4, fontSize: 12, color: C.textMuted }}>{user?.email}</div>
+                  <InlineMsg msg={avatarMsg} />
                 </div>
-                {profile?.bio && <p className="text-xs mb-2" style={{ color: S.muted }}>{profile.bio}</p>}
-                <p className="text-xs" style={{ color: S.muted }}>{user?.email}</p>
-                {avatarMsg && <p className={`text-xs mt-1.5 flex items-center gap-1 ${avatarMsg.ok ? 'text-green-400' : 'text-red-400'}`}>{avatarMsg.ok ? <Check size={12} /> : <X size={12} />} {avatarMsg.text}</p>}
               </div>
-            </div>
 
-            {/* Edit Profile */}
-            <Label text="Compte" />
-            <Card>
-              <CardRow
-                icon={<Pencil size={16} className="text-white" />}
-                iconBg={S.purple}
-                label="Modifier le profil"
-                sublabel="Nom, @handle, bio"
-                right={<motion.div animate={{ rotate: editPanel === 'profile' ? 180 : 0 }}><ChevronDown size={16} style={{ color: S.muted }} /></motion.div>}
-                onClick={() => openPanel('profile')}
-              />
-              <AnimatePresence>
-                {editPanel === 'profile' && (
-                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                    <div className="px-4 pb-4 pt-1 space-y-3" style={{ borderTop: `1px solid ${S.border}` }}>
-                      <div>
-                        <label className="text-xs mb-1 block" style={{ color: S.muted }}>Nom d'affichage</label>
-                        <input type="text" value={editName} onChange={e => setEditName(e.target.value)} maxLength={30} placeholder="Ton nom" className="w-full px-3 py-2 rounded-xl text-sm outline-none" style={{ background: '#1a1a28', border: `1px solid ${S.border}`, color: S.text }} />
-                      </div>
-                      <div>
-                        <label className="text-xs mb-1 block" style={{ color: S.muted }}>Username <span style={{ color: '#a29bfe' }}>(unique)</span></label>
-                        <div className="flex items-center rounded-xl overflow-hidden" style={{ background: '#1a1a28', border: `1px solid ${S.border}` }}>
-                          <span className="pl-3 pr-1 text-sm flex-shrink-0" style={{ color: S.muted }}>@</span>
-                          <input type="text" value={editHandle} onChange={e => setEditHandle(e.target.value.replace(/^@/, '').replace(/[^a-z0-9_]/gi, '').toLowerCase())} maxLength={20} placeholder="ton_username" className="flex-1 bg-transparent pr-3 py-2 text-sm outline-none" style={{ color: S.text }} />
+              {/* ── COMPTE ── */}
+              <SectionLabel>Compte</SectionLabel>
+              <Card>
+                <SettingRow
+                  icon={<Pencil size={15} color="#fff" />}
+                  iconBg={C.accent}
+                  label="Modifier le profil"
+                  sub="Nom, @handle, bio"
+                  right={
+                    <motion.div animate={{ rotate: editPanel === 'profile' ? 180 : 0 }}>
+                      <ChevronDown size={16} style={{ color: C.textMuted }} />
+                    </motion.div>
+                  }
+                  noBorder={editPanel !== 'profile'}
+                  onClick={() => openPanel('profile')}
+                />
+                <AnimatePresence>
+                  {editPanel === 'profile' && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: 'hidden' }}>
+                      <div style={{ padding: '12px 16px 16px', borderTop: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <div>
+                          <label style={{ fontSize: 12, color: C.textMuted, display: 'block', marginBottom: 4 }}>Nom d'affichage</label>
+                          <input type="text" value={editName} onChange={e => setEditName(e.target.value)} maxLength={30} placeholder="Ton nom"
+                            style={{ width: '100%', padding: '8px 12px', borderRadius: 10, fontSize: 14, outline: 'none', background: '#0d0d1a', border: `1px solid ${C.border}`, color: C.text, boxSizing: 'border-box' }} />
                         </div>
+                        <div>
+                          <label style={{ fontSize: 12, color: C.textMuted, display: 'block', marginBottom: 4 }}>Username <span style={{ color: '#a29bfe' }}>(unique)</span></label>
+                          <div style={{ display: 'flex', alignItems: 'center', borderRadius: 10, overflow: 'hidden', background: '#0d0d1a', border: `1px solid ${C.border}` }}>
+                            <span style={{ paddingLeft: 12, paddingRight: 4, fontSize: 14, color: C.textMuted, flexShrink: 0 }}>@</span>
+                            <input type="text" value={editHandle}
+                              onChange={e => setEditHandle(e.target.value.replace(/^@/, '').replace(/[^a-z0-9_]/gi, '').toLowerCase())}
+                              maxLength={20} placeholder="ton_username"
+                              style={{ flex: 1, background: 'transparent', padding: '8px 12px 8px 4px', fontSize: 14, outline: 'none', color: C.text }} />
+                          </div>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: 12, color: C.textMuted, display: 'block', marginBottom: 4 }}>Bio</label>
+                          <textarea value={editBio} onChange={e => setEditBio(e.target.value)} maxLength={200} rows={2} placeholder="Parle de toi..."
+                            style={{ width: '100%', padding: '8px 12px', borderRadius: 10, fontSize: 14, outline: 'none', background: '#0d0d1a', border: `1px solid ${C.border}`, color: C.text, resize: 'none', boxSizing: 'border-box' }} />
+                        </div>
+                        <InlineMsg msg={profileMsg} />
+                        <button onClick={handleSaveProfile} disabled={profileSaving}
+                          style={{ width: '100%', padding: '10px 0', borderRadius: 10, fontSize: 14, fontWeight: 600, color: '#fff', background: C.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: profileSaving ? 0.6 : 1 }}>
+                          {profileSaving ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
+                          {profileSaving ? 'Sauvegarde...' : 'Enregistrer'}
+                        </button>
                       </div>
-                      <div>
-                        <label className="text-xs mb-1 block" style={{ color: S.muted }}>Bio</label>
-                        <textarea value={editBio} onChange={e => setEditBio(e.target.value)} maxLength={200} rows={2} placeholder="Parle de toi..." className="w-full px-3 py-2 rounded-xl text-sm outline-none resize-none" style={{ background: '#1a1a28', border: `1px solid ${S.border}`, color: S.text }} />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </Card>
+
+              {/* ── SÉCURITÉ ── */}
+              <SectionLabel>Sécurité</SectionLabel>
+              <Card>
+                <SettingRow
+                  icon={<Mail size={15} color="#fff" />}
+                  iconBg="rgba(52,152,219,0.9)"
+                  label="Changer l'email"
+                  sub={user?.email || ''}
+                  right={
+                    <motion.div animate={{ rotate: editPanel === 'email' ? 180 : 0 }}>
+                      <ChevronDown size={16} style={{ color: C.textMuted }} />
+                    </motion.div>
+                  }
+                  onClick={() => openPanel('email')}
+                />
+                <AnimatePresence>
+                  {editPanel === 'email' && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: 'hidden' }}>
+                      <div style={{ padding: '12px 16px 16px', borderTop: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="Nouvelle adresse email"
+                          style={{ width: '100%', padding: '8px 12px', borderRadius: 10, fontSize: 14, outline: 'none', background: '#0d0d1a', border: `1px solid ${C.border}`, color: C.text, boxSizing: 'border-box' }} />
+                        <InlineMsg msg={emailMsg} />
+                        <button onClick={handleChangeEmail} disabled={emailSaving || !newEmail.trim()}
+                          style={{ width: '100%', padding: '10px 0', borderRadius: 10, fontSize: 14, fontWeight: 600, color: '#fff', background: C.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: (emailSaving || !newEmail.trim()) ? 0.5 : 1 }}>
+                          {emailSaving ? <Loader2 size={15} className="animate-spin" /> : <Mail size={15} />}
+                          {emailSaving ? 'Envoi...' : "Modifier l'email"}
+                        </button>
                       </div>
-                      <Feedback msg={profileMsg} />
-                      <button onClick={handleSaveProfile} disabled={profileSaving} className="w-full py-2.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-50" style={{ background: S.purple }}>
-                        {profileSaving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                        {profileSaving ? 'Sauvegarde...' : 'Enregistrer'}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                <SettingRow
+                  icon={<KeyRound size={15} color="#fff" />}
+                  iconBg="rgba(241,196,15,0.85)"
+                  label="Réinitialiser le mot de passe"
+                  sub={passwordResetMsg ? undefined : `Lien envoyé à ${user?.email}`}
+                  noBorder
+                  right={
+                    passwordResetMsg ? (
+                      <span style={{ fontSize: 12, color: passwordResetMsg.ok ? C.success : C.danger, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        {passwordResetMsg.ok ? <Check size={12} /> : <X size={12} />}
+                        {passwordResetMsg.ok ? 'Envoyé !' : 'Erreur'}
+                      </span>
+                    ) : (
+                      <button onClick={handlePasswordReset} disabled={passwordResetSaving}
+                        style={{ padding: '6px 14px', borderRadius: 8, background: C.accentLight, border: `1px solid ${C.accentGlow}`, color: C.accent, fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', opacity: passwordResetSaving ? 0.6 : 1 }}>
+                        {passwordResetSaving ? <Loader2 size={12} className="animate-spin" /> : <Lock size={12} />}
+                        {passwordResetSaving ? '...' : 'Envoyer'}
                       </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                    )
+                  }
+                />
+              </Card>
 
-              <Divider />
-              <CardRow
-                icon={<LogOut size={16} className="text-white" />}
-                iconBg="#e74c3c"
-                label="Déconnexion"
-                danger
-                right={isSigningOut ? <Loader2 size={16} className="text-red-400 animate-spin" /> : undefined}
-                onClick={handleSignOut}
-              />
-            </Card>
-
-            {/* Security */}
-            <Label text="Sécurité" />
-            <Card>
-              <CardRow
-                icon={<Mail size={16} className="text-white" />}
-                iconBg="#3498db"
-                label="Changer l'email"
-                sublabel={user?.email || ''}
-                right={<motion.div animate={{ rotate: editPanel === 'email' ? 180 : 0 }}><ChevronDown size={16} style={{ color: S.muted }} /></motion.div>}
-                onClick={() => openPanel('email')}
-              />
-              <AnimatePresence>
-                {editPanel === 'email' && (
-                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                    <div className="px-4 pb-4 pt-1 space-y-3" style={{ borderTop: `1px solid ${S.border}` }}>
-                      <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="Nouvelle adresse email" className="w-full px-3 py-2 rounded-xl text-sm outline-none" style={{ background: '#1a1a28', border: `1px solid ${S.border}`, color: S.text }} />
-                      <Feedback msg={emailMsg} />
-                      <button onClick={handleChangeEmail} disabled={emailSaving || !newEmail.trim()} className="w-full py-2.5 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-50" style={{ background: S.purple }}>
-                        {emailSaving ? <Loader2 size={16} className="animate-spin" /> : <Mail size={16} />}
-                        {emailSaving ? 'Envoi...' : "Modifier l'email"}
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <Divider />
-              <div className="flex items-center gap-3" style={{ padding: '13px 16px' }}>
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#f39c12' }}>
-                  <KeyRound size={16} className="text-white" />
+              {/* ── CONFIDENTIALITÉ ── */}
+              <SectionLabel>Confidentialité</SectionLabel>
+              <Card>
+                <SettingRow
+                  icon={<MessageCircle size={15} color="#fff" />}
+                  iconBg="rgba(0,184,148,0.85)"
+                  label="Messages privés"
+                  sub="Autoriser les autres à t'envoyer des DMs"
+                  noBorder
+                  right={<CSSToggle enabled={allowDms} onChange={handleToggleDms} disabled={dmsSaving} />}
+                />
+              </Card>
+            </>
+          ) : (
+            <div style={{ borderRadius: 12, background: C.card, border: `1px solid ${C.border}`, overflow: 'hidden', marginBottom: 8 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px 16px', gap: 12 }}>
+                <div style={{ width: 64, height: 64, borderRadius: 20, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <User size={28} style={{ color: C.textMuted }} />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium" style={{ color: S.text }}>Réinitialiser le mot de passe</p>
-                  <p className="text-xs" style={{ color: S.muted }}>Lien envoyé à {user?.email}</p>
-                  {passwordResetMsg && <p className={`text-xs mt-0.5 flex items-center gap-1 ${passwordResetMsg.ok ? 'text-green-400' : 'text-red-400'}`}>{passwordResetMsg.ok ? <Check size={12} /> : <X size={12} />} {passwordResetMsg.text}</p>}
-                </div>
-                <button onClick={handlePasswordReset} disabled={passwordResetSaving} className="px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-50 flex items-center gap-1.5" style={{ background: '#1a1a28', color: S.text }}>
-                  {passwordResetSaving ? <Loader2 size={12} className="animate-spin" /> : <Lock size={12} />}
-                  {passwordResetSaving ? '...' : 'Envoyer'}
-                </button>
+                <p style={{ fontSize: 14, fontWeight: 600, color: C.text, margin: 0 }}>Non connecté</p>
+                <p style={{ fontSize: 13, color: C.textMuted, margin: 0, textAlign: 'center' }}>Connecte-toi pour accéder à toutes les fonctionnalités</p>
               </div>
-            </Card>
-
-            {/* Privacy */}
-            <Label text="Confidentialité" />
-            <Card>
-              <div className="flex items-center gap-3" style={{ padding: '13px 16px' }}>
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#27ae60' }}>
-                  <MessageCircle size={16} className="text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium" style={{ color: S.text }}>Messages privés</p>
-                  <p className="text-xs" style={{ color: S.muted }}>Autoriser les autres à t'envoyer des DMs</p>
-                </div>
-                <button onClick={handleToggleDms} disabled={dmsSaving} className={`relative w-12 h-6 rounded-full transition-colors flex-shrink-0 ${dmsSaving ? 'opacity-50' : ''}`} style={{ background: allowDms ? S.purple : '#2a2a3e' }}>
-                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${allowDms ? 'translate-x-6' : ''}`} />
-                </button>
-              </div>
-            </Card>
-          </>
-        ) : (
-          <Card className="mt-2">
-            <div className="flex flex-col items-center py-8 gap-3">
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: '#1a1a28' }}>
-                <User size={28} style={{ color: S.muted }} />
-              </div>
-              <p className="text-sm font-medium" style={{ color: S.text }}>Non connecté</p>
-              <p className="text-xs" style={{ color: S.muted }}>Connecte-toi pour accéder à toutes les fonctionnalités</p>
             </div>
+          )}
+
+          {/* ── APPARENCE ── */}
+          <SectionLabel>Apparence</SectionLabel>
+          <Card>
+            <SettingRow
+              icon={<Moon size={15} color="#fff" />}
+              iconBg="rgba(108,92,231,0.85)"
+              label="Thème"
+              noBorder
+              right={
+                <SegmentControl
+                  value={settings.theme}
+                  onChange={v => updateSetting('theme', v as Theme)}
+                  options={[
+                    { label: 'Sombre', value: 'dark' },
+                    { label: 'Système', value: 'system' },
+                  ]}
+                />
+              }
+            />
           </Card>
-        )}
 
-        {/* Appearance */}
-        <Label text="Apparence" />
-        <Card>
-          <div className="flex items-center gap-3" style={{ padding: '13px 16px' }}>
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#8e44ad' }}>
-              <Moon size={16} className="text-white" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium" style={{ color: S.text }}>Thème</p>
-            </div>
-            <div className="flex gap-1.5">
-              {[{ v: 'dark' as const, label: 'Sombre', Icon: Moon }, { v: 'system' as const, label: 'Système', Icon: Monitor }].map(({ v, label, Icon }) => (
-                <button key={v} onClick={() => updateSetting('theme', v)} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all" style={{ background: settings.theme === v ? S.purple : '#1a1a28', color: settings.theme === v ? '#fff' : S.muted }}>
-                  <Icon size={12} />
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </Card>
+          {/* ── CONTENU ── */}
+          <SectionLabel>Contenu</SectionLabel>
+          <Card>
+            <SettingRow
+              icon={<EyeOff size={15} color="#fff" />}
+              iconBg="rgba(231,76,60,0.85)"
+              label="Contenu mature"
+              noBorder
+              right={
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {matureFilterSaving && <Loader2 size={13} className="animate-spin" style={{ color: C.textMuted }} />}
+                  <SegmentControl
+                    value={matureFilter}
+                    onChange={v => handleMatureFilterChange(v as MatureContent)}
+                    options={[
+                      { label: 'Afficher', value: 'show' },
+                      { label: 'Flouter', value: 'blur' },
+                      { label: 'Masquer', value: 'hide' },
+                    ]}
+                  />
+                </div>
+              }
+            />
+          </Card>
 
-        {/* Content */}
-        <Label text="Contenu" />
-        <Card>
-          <div className="flex items-center gap-3 flex-wrap gap-y-2" style={{ padding: '13px 16px' }}>
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#e67e22' }}>
-              <EyeOff size={16} className="text-white" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium" style={{ color: S.text }}>Contenu mature</p>
-            </div>
-            <div className="flex gap-1.5">
-              {[{ v: 'show' as const, label: 'Afficher' }, { v: 'blur' as const, label: 'Flouter' }, { v: 'hide' as const, label: 'Masquer' }].map(({ v, label }) => (
-                <button key={v} onClick={() => handleMatureFilterChange(v)} className="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all" style={{ background: matureFilter === v ? S.purple : '#1a1a28', color: matureFilter === v ? '#fff' : S.muted }}>
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </Card>
+          {/* ── À PROPOS ── */}
+          <SectionLabel>À propos</SectionLabel>
+          <Card>
+            <SettingRow
+              icon={<Globe size={15} color="#fff" />}
+              iconBg="rgba(108,92,231,0.85)"
+              label="Comment Live"
+              sub="Version 1.0.0 · par DINO"
+              noBorder
+            />
+          </Card>
 
-        {/* About */}
-        <Label text="À propos" />
-        <Card>
-          <div className="px-4 py-4 flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg, #6c5ce7, #3498db)' }}>
-              <Globe size={22} className="text-white" />
-            </div>
-            <div>
-              <p className="font-bold" style={{ color: S.text }}>Comment Live</p>
-              <p className="text-xs" style={{ color: S.muted }}>Version 1.0.0 · par DINO</p>
-            </div>
-          </div>
-          <Divider />
-          <div className="p-3 grid grid-cols-2 gap-2">
-            <a href="mailto:support@commentlive.app" className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-medium" style={{ background: '#1a1a28', color: S.text }}>
+          {/* ── ADMINISTRATION ── */}
+          {profile?.isAdmin && onAdminClick && (
+            <>
+              <SectionLabel>Administration</SectionLabel>
+              <Card>
+                <SettingRow
+                  icon={<ShieldAlert size={15} color="#fff" />}
+                  iconBg={C.danger}
+                  label="Panneau d'administration"
+                  sub="Signalements · Feedbacks · Pubs · Bans"
+                  noBorder
+                  onClick={onAdminClick}
+                />
+              </Card>
+            </>
+          )}
+
+          {/* ── BOTTOM ACTIONS ── */}
+          <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+            <a
+              href="mailto:support@commentlive.app"
+              style={{ flex: 1, height: 44, borderRadius: 10, background: C.card, border: `1px solid ${C.border}`, color: C.textSub, fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none' }}
+            >
               <Send size={14} /> Support
             </a>
-            <a href="mailto:ads@commentlive.app" className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-medium" style={{ background: 'rgba(108,92,231,0.15)', color: '#a29bfe', border: '1px solid rgba(108,92,231,0.3)' }}>
+            <a
+              href="mailto:ads@commentlive.app"
+              style={{ flex: 1, height: 44, borderRadius: 10, background: C.card, border: `1px solid ${C.border}`, color: C.textSub, fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textDecoration: 'none' }}
+            >
               <Megaphone size={14} /> Pub / Ads
             </a>
           </div>
-          <div className="px-3 pb-3">
-            <button onClick={() => setShowFeedbackModal(true)} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-medium" style={{ background: '#1a1a28', color: '#74b9ff' }}>
-              <MessageSquare size={14} /> Envoyer un feedback
+
+          <button
+            onClick={() => setShowFeedbackModal(true)}
+            style={{ width: '100%', height: 44, borderRadius: 10, background: C.accentLight, border: `1px solid ${C.accentGlow}`, color: C.accent, fontSize: 13, fontWeight: 600, cursor: 'pointer', marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+          >
+            <MessageSquare size={14} /> Envoyer un feedback
+          </button>
+
+          {isAuthenticated && (
+            <button
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+              style={{ width: '100%', height: 44, borderRadius: 10, background: C.dangerLight, border: '1px solid rgba(231,76,60,0.25)', color: C.danger, fontSize: 14, fontWeight: 700, cursor: 'pointer', marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: isSigningOut ? 0.6 : 1, transition: 'opacity 0.15s' }}
+            >
+              {isSigningOut ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
+              {isSigningOut ? 'Déconnexion...' : 'Se déconnecter'}
             </button>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginTop: 20, fontSize: 12, color: C.textMuted }}>
+            <span style={{ cursor: 'pointer' }} onClick={() => setLegalPage('terms')}>
+              <FileText size={11} style={{ display: 'inline', marginRight: 3, verticalAlign: 'middle' }} />CGU
+            </span>
+            <span style={{ color: C.border }}>·</span>
+            <span style={{ cursor: 'pointer', color: C.accent }} onClick={() => setLegalPage('privacy')}>
+              <ShieldCheck size={11} style={{ display: 'inline', marginRight: 3, verticalAlign: 'middle' }} />Confidentialité
+            </span>
           </div>
-          <Divider />
-          <div className="flex items-center justify-center gap-4 px-4 py-3">
-            <button onClick={() => setLegalPage('terms')} className="flex items-center gap-1 text-xs" style={{ color: S.muted }}>
-              <FileText size={12} /> CGU
-            </button>
-            <span style={{ color: S.border }}>·</span>
-            <button onClick={() => setLegalPage('privacy')} className="flex items-center gap-1 text-xs" style={{ color: S.muted }}>
-              <ShieldCheck size={12} /> Confidentialité
-            </button>
-          </div>
-        </Card>
 
-        {/* ══════════ ADMINISTRATION ══════════ (admins only) */}
-        {profile?.isAdmin && onAdminClick && (
-          <>
-            <Label text="Administration" />
-            <Card>
-              <CardRow
-                icon={<ShieldAlert size={16} className="text-white" />}
-                iconBg="#e74c3c"
-                label="Panneau d'administration"
-                sublabel="Signalements · Feedbacks · Pubs · Bans"
-                onClick={onAdminClick}
-              />
-            </Card>
-          </>
-        )}
-
-        <div className="h-8" />
-
+        </div>
       </div>
 
-      {/* Feedback Modal */}
       <FeedbackModal isOpen={showFeedbackModal} onClose={() => setShowFeedbackModal(false)} />
     </div>
   );
